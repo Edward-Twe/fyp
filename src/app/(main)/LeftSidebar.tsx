@@ -10,6 +10,7 @@ import {
   Package,
   BarChart3,
   Home,
+  PlusCircle,
 } from "lucide-react";
 
 import UserButton from "@/components/UserButton";
@@ -27,6 +28,11 @@ import LogoWordWhite from "@/assets/logo-word-white.png";
 import Image from "next/image";
 import Link from "next/link";
 import { useTheme } from "next-themes";
+import { loadOrganizations } from "./loadOrganizations";
+import { Organization } from "@prisma/client";
+import defaultLogo from "@/assets/organization.png";
+import { OrganizationProvider, useOrganization } from "../contexts/OrganizationContext";
+import { redirect } from "next/navigation";
 
 function useMediaQuery(query: string) {
   const [matches, setMatches] = React.useState(false);
@@ -66,17 +72,32 @@ function ThemedImage({
   );
 }
 
-export default function LeftSidebar({
-  className, 
-  children, 
-}: React.HTMLAttributes<HTMLDivElement> & {children: React.ReactNode}) {
+function LeftSidebarContent({
+  className,
+  children,
+}: React.HTMLAttributes<HTMLDivElement> & { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = React.useState(false);
-  const [selectedProject, setSelectedProject] = React.useState("Project A");
+  const { selectedOrg, setSelectedOrg } = useOrganization();
   const isSmallScreen = useMediaQuery("(max-width: 768px)");
+  const [organizations, setOrganizations] = React.useState<Organization[]>([]);
+  const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     setCollapsed(isSmallScreen);
   }, [isSmallScreen]);
+
+  React.useEffect(() => {
+    const fetchOrganizations = async () => {
+      const result = await loadOrganizations();
+      if ("error" in result) {
+        setError(result.error);
+      } else {
+        setOrganizations(result);
+      }
+    };
+
+    fetchOrganizations();
+  }, []);
 
   return (
     <div className="relative flex h-screen bg-card">
@@ -105,67 +126,93 @@ export default function LeftSidebar({
                   variant="ghost"
                   className="w-full justify-between border border-black"
                 >
-                  {selectedProject}{" "}
+                  {selectedOrg == null ? (
+                    <span>Select Organization</span>
+                  ) : (
+                    <>
+                      <Image
+                        src={
+                          !selectedOrg.orgPic ? defaultLogo : selectedOrg.orgPic
+                        }
+                        alt={selectedOrg.name}
+                        className="mr-2 h-8 w-8 rounded-full object-cover"
+                      />
+                      <span className="truncate">{selectedOrg.name}</span>
+                    </>
+                  )}
                   <ChevronDown className="h-4 w-4 opacity-50" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56">
-                <DropdownMenuItem
-                  onSelect={() => setSelectedProject("Project A")}
-                >
-                  Project A
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onSelect={() => setSelectedProject("Project B")}
-                >
-                  Project B
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onSelect={() => setSelectedProject("Project C")}
-                >
-                  Project C
-                </DropdownMenuItem>
+                {error ? (
+                  <span>{error}</span>
+                ) : (
+                  <>
+                    {organizations.map((organization) => (
+                      <DropdownMenuItem
+                        key={organization.id}
+                        className="cursor-pointer"
+                        onClick={() => setSelectedOrg(organization)}
+                      >
+                        <Image
+                          src={
+                            organization.orgPic
+                              ? organization.orgPic
+                              : defaultLogo
+                          }
+                          alt={organization.name}
+                          className="mr-2 h-8 w-8 rounded-full object-cover"
+                        />
+                        <span>{organization.name}</span>
+                      </DropdownMenuItem>
+                    ))}
+                    <DropdownMenuItem className="cursor-pointer" onClick={() => redirect('/organizations')}>
+                      <PlusCircle className="ml-2 mr-4 h-8 w-8 rounded-full object-cover" />
+                      <span>Create New</span>
+                    </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           )}
         </div>
 
         <nav className="flex flex-col gap-2">
-          <NavItem
-            collapsed={collapsed}
-            icon={Home}
-            label="Home"
-            href="/"
-          />
+          <NavItem collapsed={collapsed} icon={Home} label="Home" href="/" disabled={false}/>
           <NavItem
             collapsed={collapsed}
             icon={Calendar}
             label="Schedule"
             href="/schedule"
+            disabled={selectedOrg == null}
           />
           <NavItem
             collapsed={collapsed}
             icon={CheckSquare}
             label="Tasks"
-            href="/tasks"
+            href="/tasks" 
+            disabled={selectedOrg == null}
           />
           <NavItem
             collapsed={collapsed}
             icon={Users}
             label="Employees"
-            href="/employees"
+            href="/employees" 
+            disabled={selectedOrg == null}
           />
           <NavItem
             collapsed={collapsed}
             icon={Package}
             label="Products"
-            href="/products"
+            href="/products" 
+            disabled={selectedOrg == null}
           />
           <NavItem
             collapsed={collapsed}
             icon={BarChart3}
             label="Reports"
-            href="/reports"
+            href="/reports" 
+            disabled={selectedOrg == null}
           />
         </nav>
 
@@ -175,12 +222,13 @@ export default function LeftSidebar({
             icon={Settings}
             label="Settings"
             href="/settings"
+            disabled={false}
           />
         </div>
       </div>
 
-          {/* Header */}
-      <div className="flex-1 h-full flex flex-col">
+      {/* Header */}
+      <div className="flex h-full flex-1 flex-col">
         <header className="flex h-14 items-center border-b bg-card px-6">
           <Button
             variant="ghost"
@@ -200,11 +248,24 @@ export default function LeftSidebar({
             <UserButton />
           </div>
         </header>
-        <main className="flex-1 p-4 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-400">
-              {children}
+        <main className="flex-1 overflow-y-auto p-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-400">
+          {children}
         </main>
       </div>
     </div>
+  );
+}
+
+export default function LeftSidebar({
+  className,
+  children,
+}: React.HTMLAttributes<HTMLDivElement> & { children: React.ReactNode }) {
+  return (
+    <OrganizationProvider>
+      <LeftSidebarContent className={className}>
+        {children}
+      </LeftSidebarContent>
+    </OrganizationProvider>
   );
 }
 
@@ -213,22 +274,33 @@ interface NavItemProps {
   icon: React.ElementType;
   label: string;
   href: string;
+  disabled: boolean;
 }
 
-function NavItem({ collapsed, icon: Icon, label, href }: NavItemProps) {
+function NavItem({ collapsed, icon: Icon, label, href, disabled }: NavItemProps) {
+  const handleClick = (e: React.MouseEvent) => {
+    if (disabled) {
+      e.preventDefault(); // Prevent the navigation if the button is disabled
+    }
+  };
+
   return (
     <Button
       variant="ghost"
       className={cn(
         "flex items-center gap-2",
         collapsed ? "justify-center px-2" : "justify-start",
+        disabled ? "opacity-50 cursor-not-allowed" : ""
       )}
+      disabled={disabled}
+      title={disabled ? "Please select or create an organization first" : ""}
       asChild
     >
-      <Link href={href}>
+      <Link href={href} onClick={handleClick}>
         <Icon className="h-4 w-4" />
         {!collapsed && <span>{label}</span>}
       </Link>
     </Button>
   );
 }
+

@@ -1,17 +1,17 @@
-import { validateRequest } from "@/auth";
-import { createUploadthing, FileRouter } from "uploadthing/next";
-import { UploadThingError } from "uploadthing/server";
+// import { validateRequest } from "@/auth";
+// import { createUploadthing, FileRouter } from "uploadthing/next";
+// import { UploadThingError } from "uploadthing/server";
 
-const f = createUploadthing();
+// const f = createUploadthing();
 
-export const fileRoute = {
-  profilePic: f({
-    image: { maxFileSize: "512KB" },
-  }).middleware(async () => {
-    const { user } = await validateRequest();
+// export const fileRoute = {
+//   profilePic: f({
+//     image: { maxFileSize: "512KB" },
+//   }).middleware(async () => {
+//     const { user } = await validateRequest();
 
-    if (!user) throw new UploadThingError("Unauthorized");
+//     if (!user) throw new UploadThingError("Unauthorized");
 
-    return { user };
-  }),
-} satisfies FileRouter;
+//     return { user };
+//   }),
+// } satisfies FileRouter;

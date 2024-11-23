@@ -1,4 +1,3 @@
-import KanbanBoard from "@/components/kanban-board";
 import Dashboard from "./HomeDashBoard";
 import { Metadata } from "next";
 

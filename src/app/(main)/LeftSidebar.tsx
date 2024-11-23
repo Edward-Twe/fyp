@@ -12,7 +12,6 @@ import {
   Home,
 } from "lucide-react";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import UserButton from "@/components/UserButton";
 import { Button } from "@/components/ui/button";
 import {

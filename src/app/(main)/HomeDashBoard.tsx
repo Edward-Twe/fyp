@@ -17,7 +17,7 @@ export default function Dashboard() {
     <div className="min-h-screen p-8">
       {/* <h1 className="text-4xl font-bold mb-8 text-center">Organization Dashboard</h1> */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {boxes.map((box, index) => (
+        {boxes.map((box) => (
           <Link href={box.href} key={box.title}>
             <motion.div
               className={`${box.color} rounded-lg shadow-lg p-8 cursor-pointer overflow-hidden relative`}

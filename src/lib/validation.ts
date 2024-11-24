@@ -35,3 +35,28 @@ export const organizationSchema = z.object({
 });
 
 export type OrganizationValues = z.infer<typeof organizationSchema>;
+
+export const employeeSchema = z.object({
+  name: requiredString,
+  email: z.preprocess(
+    (value) => (value === "" ? null : value), // Convert empty string to null
+    z.string().email("Invalid email address").nullable().optional() // Validate email
+  ),
+  area: z.string().nullable().optional(), 
+  orgId: requiredString
+});
+
+export type EmployeeValues = z.infer<typeof employeeSchema>;
+
+export const updateEmployeeSchema = z.object({
+  id: requiredString, 
+  name: requiredString,
+  email: z.preprocess(
+    (value) => (value === "" ? null : value), // Convert empty string to null
+    z.string().email("Invalid email address").nullable().optional() // Validate email
+  ),
+  area: z.string().nullable().optional(), 
+  orgId: requiredString
+});
+
+export type UpdateEmployeeValues = z.infer<typeof updateEmployeeSchema>;

@@ -1,5 +1,5 @@
-import { Organization } from '@prisma/client';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { Organization } from '@prisma/client'; // Adjust the import path as needed
 
 interface OrganizationContextType {
   selectedOrg: Organization | null;
@@ -13,11 +13,34 @@ export function useOrganization() {
   if (context === undefined) {
     throw new Error('useOrganization must be used within an OrganizationProvider');
   }
-  return context;
+
+  const clearSelectedOrg = () => {
+    context.setSelectedOrg(null);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('selectedOrg');
+    }
+  };
+
+  return { ...context, clearSelectedOrg };
 }
 
 export function OrganizationProvider({ children }: { children: React.ReactNode }) {
-  const [selectedOrg, setSelectedOrg] = React.useState<Organization | null>(null);
+  const [selectedOrg, setSelectedOrg] = useState<Organization | null>(null);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+    const storedOrg = localStorage.getItem('selectedOrg');
+    if (storedOrg) {
+      setSelectedOrg(JSON.parse(storedOrg));
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isClient && selectedOrg) {
+      localStorage.setItem('selectedOrg', JSON.stringify(selectedOrg));
+    }
+  }, [isClient, selectedOrg]);
 
   return (
     <OrganizationContext.Provider value={{ selectedOrg, setSelectedOrg }}>

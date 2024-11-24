@@ -29,7 +29,8 @@ model User {
   sessions      Session[]
   organizations Organization[]
 
-  createdAt DateTime @default(now())
+  createdAt DateTime    @default(now())
+  Employees Employees[]
 
   // table name in database
   @@map("users")
@@ -45,13 +46,27 @@ model Session {
 }
 
 model Organization {
-  id       String  @id @default(cuid())
-  name     String
-  email    String?
-  location String?
-  orgPic   String?
-  ownerId  String
-  user     User    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  id        String      @id @default(cuid())
+  name      String
+  email     String?
+  location  String?
+  orgPic    String?
+  ownerId   String
+  user      User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  Employees Employees[]
 
   @@map("organizations")
+}
+
+model Employees {
+  id           String       @id @default(cuid())
+  name         String
+  email        String?
+  area         String?
+  orgId        String
+  userId       String?
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("employees")
 }

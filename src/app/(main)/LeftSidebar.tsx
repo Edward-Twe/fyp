@@ -188,7 +188,7 @@ function LeftSidebarContent({
           />
           <NavItem
             collapsed={collapsed}
-            icon={CheckSquare}
+            icon={Package}
             label="Tasks"
             href="/tasks" 
             disabled={selectedOrg == null}
@@ -202,9 +202,9 @@ function LeftSidebarContent({
           />
           <NavItem
             collapsed={collapsed}
-            icon={Package}
-            label="Products"
-            href="/products" 
+            icon={CheckSquare}
+            label="Job Orders"
+            href="/job-orders" 
             disabled={selectedOrg == null}
           />
           <NavItem

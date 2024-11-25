@@ -1,10 +1,10 @@
 "use client";
 
-import { employeeSchema, EmployeeValues } from "@/lib/validation";
+import { taskSchema, TaskValues } from "@/lib/validation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { SubmitHandler, useForm } from "react-hook-form";
-import { createEmployee } from "./action";
+import { createTask } from "./action";
 import {
   Form,
   FormControl,
@@ -17,30 +17,43 @@ import { CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import LoadingButton from "@/components/Loadingbutton";
 import { useOrganization } from "@/app/contexts/OrganizationContext";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-export default function EmpForm() {
+export default function TaskForm() {
   const [error, setError] = useState<string>();
 
   const [isPending, startTransition] = useTransition();
 
   const { selectedOrg } = useOrganization();
 
-  const form = useForm<EmployeeValues>({
-    resolver: zodResolver(employeeSchema),
+  const form = useForm<TaskValues>({
+    resolver: zodResolver(taskSchema),
 
     defaultValues: {
-      name: "",
-      email: "",
-      area: "",
+      task: "",
+      requiredTimeValue: 0.0,
+      requiredTimeUnit: "minutes",
+      spaceNeeded: 0.0,
+      orgId: selectedOrg?.id,
     },
   });
 
-  const onSubmit: SubmitHandler<EmployeeValues> = (values) => {
+  useEffect(() => {
+    form.reset({
+      task: "",
+      requiredTimeValue: 0.0,
+      requiredTimeUnit: "minutes",
+      spaceNeeded: 0.0,
+      orgId: selectedOrg?.id
+    })
+  }, [selectedOrg])
+
+  const onSubmit: SubmitHandler<TaskValues> = (values) => {
     setError(undefined);
     console.log("Form submitted", values);
     startTransition(async () => {
       try {
-        const result = await createEmployee(values);
+        const result = await createTask(values);
         if ("error" in result && result.error) {
           setError(result.error);
         } else {
@@ -56,7 +69,6 @@ export default function EmpForm() {
 
   const onButtonClick = () => {
     const formData = form.getValues();
-    console.log("Button clicked, form data:", formData);
     onSubmit(formData);
   };
 
@@ -72,12 +84,12 @@ export default function EmpForm() {
           <div className="space-y-2">
             <FormField
               control={form.control}
-              name="name"
+              name="task"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Employee Name</FormLabel>
+                  <FormLabel>Task Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter employee name" {...field} />
+                    <Input placeholder="Enter task name" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -87,15 +99,49 @@ export default function EmpForm() {
           <div className="space-y-2">
             <FormField
               control={form.control}
-              name="email"
+              name="requiredTimeValue"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Employee Email</FormLabel>
+                  <FormLabel>Required Time</FormLabel>
+                  <FormControl>
+                    <div style={{ display: "flex", alignItems: "center" }}>
+                      <Input
+                        type="number"
+                        placeholder="Enter estimated time to finish task"
+                        {...field}
+                        style={{ flex: 1, marginRight: "8px" }} 
+                      />
+                      <Select
+                        {...form.register("requiredTimeUnit")}
+                        defaultValue="minutes"
+                      >
+                        <SelectTrigger className="w-24">
+                          <SelectValue placeholder="Unit" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="minutes">Minutes</SelectItem>
+                          <SelectItem value="hours">Hours</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          <div className="space-y-2">
+            <FormField
+              control={form.control}
+              name="spaceNeeded"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Space Needed</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="Enter employee email"
+                    type="number"
+                      placeholder="Enter space needed for the task"
                       {...field}
-                      value={field.value ?? ""}
                     />
                   </FormControl>
                   <FormMessage />
@@ -104,51 +150,6 @@ export default function EmpForm() {
             />
           </div>
           <div className="space-y-2">
-            <FormField
-              control={form.control}
-              name="area"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Employee Area</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter employee area" {...field} value={field.value ?? ""}/>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-          <Input
-            type="hidden"
-            {...form.register("orgId")}
-            value={selectedOrg.id}
-          />
-          <div className="space-y-2">
-            {/* <Label htmlFor="logo">employee Logo</Label> */}
-            {/* <div className="flex items-center space-x-4">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                >
-                  <Upload className="mr-2 h-4 w-4" /> Upload Logo
-                </Button>
-                <Input 
-                  id="logo" 
-                  type="file" 
-                  className="hidden" 
-                  onChange={handleLogoChange} 
-                  accept="image/*"
-                />
-                {logoPreview && (
-                  <div className="relative w-16 h-16">
-                    <img 
-                      src={logoPreview} 
-                      alt="Logo preview" 
-                      className="w-full h-full object-cover rounded-md"
-                    />
-                  </div>
-                )}
-              </div> */}
           </div>
         </CardContent>
         <CardFooter>
@@ -158,7 +159,7 @@ export default function EmpForm() {
             className="w-full"
             loading={isPending}
           >
-            Create Employee
+            Create Task
           </LoadingButton>
         </CardFooter>
       </form>

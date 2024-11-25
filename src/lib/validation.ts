@@ -60,3 +60,15 @@ export const updateEmployeeSchema = z.object({
 });
 
 export type UpdateEmployeeValues = z.infer<typeof updateEmployeeSchema>;
+
+const timeUnitEnum = z.enum(["minutes", "hours"]);
+
+export const taskSchema = z.object({
+  task: requiredString,
+  requiredTimeValue: z.coerce.number().min(0),  
+  requiredTimeUnit: timeUnitEnum, 
+  spaceNeeded: z.coerce.number().min(0), 
+  orgId: requiredString
+});
+
+export type TaskValues = z.infer<typeof taskSchema>;

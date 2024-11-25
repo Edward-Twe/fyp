@@ -54,6 +54,7 @@ model Organization {
   ownerId   String
   user      User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   Employees Employees[]
+  Tasks     Tasks[]
 
   @@map("organizations")
 }
@@ -69,4 +70,47 @@ model Employees {
   user         User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("employees")
+}
+
+enum TimeUnit {
+  minutes
+  hours
+}
+
+model Tasks {
+  id                String   @id @default(cuid())
+  task              String
+  requiredTimeValue Decimal
+  requiredTimeUnit  TimeUnit
+  spaceNeeded       Decimal
+  orgId             String
+
+  organization Organization   @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  JobOrderTask JobOrderTask[]
+
+  @@map("tasks")
+}
+
+model JobOrders {
+  id          String   @id @default(cuid())
+  orderNumber String
+  createdAt   DateTime @default(now())
+
+  JobOrderTask JobOrderTask[]
+
+  @@map("job_orders")
+}
+
+model JobOrderTask {
+  id         String @id @default(cuid())
+  jobOrderId String
+  taskId     String
+  quantity   Int
+
+  jobOrder JobOrders @relation(fields: [jobOrderId], references: [id], onDelete: Cascade)
+  task     Tasks     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  //cannot have same task in one job order
+  @@unique([jobOrderId, taskId])
+  @@map("job_order_task")
 }

@@ -55,6 +55,7 @@ model Organization {
   user      User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   Employees Employees[]
   Tasks     Tasks[]
+  JobOrders JobOrders[]
 
   @@map("organizations")
 }
@@ -95,7 +96,10 @@ model JobOrders {
   id          String   @id @default(cuid())
   orderNumber String
   createdAt   DateTime @default(now())
+  orgId       String
+  address String 
 
+  organization Organization   @relation(fields: [orgId], references: [id], onDelete: Cascade)
   JobOrderTask JobOrderTask[]
 
   @@map("job_orders")

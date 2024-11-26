@@ -72,3 +72,17 @@ export const taskSchema = z.object({
 });
 
 export type TaskValues = z.infer<typeof taskSchema>;
+
+export const jobOrderTaskSchema = z.object({
+  taskId: z.string().min(1, "Task is required"),
+  quantity: z.number().min(1, "Quantity must be at least 1"),
+});
+
+export const jobOrderSchema = z.object({
+  orderNumber: z.string().min(1, "Order number is required"),
+  address: z.string().min(1, "Address is required"),
+  orgId: requiredString, 
+  tasks: z.array(jobOrderTaskSchema).min(1, "At least one task is required"),
+});
+
+export type JobOrderValues = z.infer<typeof jobOrderSchema>;

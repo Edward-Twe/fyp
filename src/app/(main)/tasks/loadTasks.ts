@@ -6,8 +6,8 @@ import prisma from "@/lib/prisma";
 const parseTask = (task: any) => {
   return {
     ...task,
-    requiredTimeValue: task.requiredTimeValue?.toNumber() || 0,
-    spaceNeeded: task.spaceNeeded?.toNumber() || 0,
+    requiredTimeValue: task.requiredTimeValue || 0,
+    spaceNeeded: task.spaceNeeded || 0,
   };
 };
 

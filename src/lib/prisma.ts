@@ -28,7 +28,7 @@ const prismaClientSingleton = () => {
 
     if (
       params.model === "Tasks" || 
-      params.model === "JobOrders" ||
+      params.model === "JobOrders" &&
       (params.action === "findMany" || params.action === "findUnique")
     ) {
       return convertDecimalToNumber(result);

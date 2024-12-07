@@ -2,12 +2,12 @@
 
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
-import { EmployeeValues, updateEmployeeSchema } from "@/lib/validation";
+import { UpdateEmployeeValues, updateEmployeeSchema } from "@/lib/validation";
 import { isRedirectError } from "next/dist/client/components/redirect";
 import { redirect } from "next/navigation";
 
 export async function editEmployee(
-  values: EmployeeValues,
+  values: UpdateEmployeeValues,
 ): Promise<{ error: string }> {
   const { user } = await validateRequest();
 

@@ -1,8 +1,6 @@
 "use client";
 
 import {
-  employeeSchema,
-  EmployeeValues,
   updateEmployeeSchema,
   UpdateEmployeeValues,
 } from "@/lib/validation";
@@ -24,7 +22,7 @@ import LoadingButton from "@/components/Loadingbutton";
 import { useOrganization } from "@/app/contexts/OrganizationContext";
 import { Employees } from "@prisma/client";
 
-export default function OrgForm({ id }: { id: string }) {
+export default function EmpForm({ id }: { id: string }) {
   const [error, setError] = useState<string>();
   const [isPending, startTransition] = useTransition();
   const { selectedOrg } = useOrganization();
@@ -84,7 +82,7 @@ export default function OrgForm({ id }: { id: string }) {
     return (<h1>Employee not Found</h1>)
   }
 
-  const onSubmit: SubmitHandler<EmployeeValues> = (values) => {
+  const onSubmit: SubmitHandler<UpdateEmployeeValues> = (values) => {
     setError(undefined);
     console.log("Form submitted", values);
     startTransition(async () => {

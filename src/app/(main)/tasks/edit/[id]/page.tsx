@@ -1,12 +1,12 @@
 import { Metadata } from "next";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import EmpForm from "./EmpForm";
+import TaskForm from "./TaskFrom";
 
 export const metadata: Metadata = {
-  title: "Edit Employee",
+  title: "Edit Task",
 };
 
-export default function EditEmployee({
+export default function EditTask({
   params,
 }: {
   params: { id: string };
@@ -20,10 +20,10 @@ export default function EditEmployee({
     <div className="container mx-auto py-10">
       <Card className="w-full max-w-2xl mx-auto">
         <CardHeader>
-          <CardTitle>Edit Employee</CardTitle>
-          <CardDescription>Fill in the details to edit employee.</CardDescription>
+          <CardTitle>Edit Task</CardTitle>
+          <CardDescription>Fill in the details to edit task.</CardDescription>
         </CardHeader>
-        <EmpForm id={id} />
+        <TaskForm id={id} />
       </Card>
     </div>
   )

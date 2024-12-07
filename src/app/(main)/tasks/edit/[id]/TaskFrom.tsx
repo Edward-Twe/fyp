@@ -1,10 +1,10 @@
 "use client";
 
-import { taskSchema, TaskValues } from "@/lib/validation";
+import { updateTaskSchema, UpdateTaskValues } from "@/lib/validation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState, useTransition } from "react";
 import { SubmitHandler, useForm } from "react-hook-form";
-import { createTask } from "./action";
+import { editTask, findTask } from "./action";
 import {
   Form,
   FormControl,
@@ -18,56 +18,87 @@ import { Input } from "@/components/ui/input";
 import LoadingButton from "@/components/Loadingbutton";
 import { useOrganization } from "@/app/contexts/OrganizationContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tasks } from "@prisma/client";
 
-export default function TaskForm() {
+export default function EditTaskForm({ id }: { id: string }) {
   const [error, setError] = useState<string>();
   const [isPending, startTransition] = useTransition();
   const { selectedOrg } = useOrganization();
+  const [task, setTask] = useState<Tasks | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const form = useForm<TaskValues>({
-    resolver: zodResolver(taskSchema),
-
+  const form = useForm<UpdateTaskValues>({
+    resolver: zodResolver(updateTaskSchema),
     defaultValues: {
+      id: "",
       task: "",
-      requiredTimeValue: 0.0,
+      requiredTimeValue: 0,
       requiredTimeUnit: "minutes",
-      spaceNeeded: 0.0,
-      orgId: selectedOrg?.id,
+      spaceNeeded: 0,
     },
   });
 
   useEffect(() => {
-    form.reset({
-      task: "",
-      requiredTimeValue: 0.0,
-      requiredTimeUnit: "minutes",
-      spaceNeeded: 0.0,
-      orgId: selectedOrg?.id
-    })
-  }, [selectedOrg, form])
+    if (!id) {
+      console.log('no id');
+      setError("No ID provided.");
+      setIsLoading(false);
+      return;
+    }
+    
+    const getTask = async () => {
+      try {
+        const fetchedTask = await findTask(id);
+        if (!fetchedTask) {
+          setError("Task doesn't exist.");
+          console.log("Error fetching task.");
+        } else {
+          setTask(fetchedTask);
+          form.reset({
+            id: fetchedTask.id,
+            task: fetchedTask.task,
+            requiredTimeValue: Number(fetchedTask.requiredTimeValue),
+            requiredTimeUnit: fetchedTask.requiredTimeUnit,
+            spaceNeeded: Number(fetchedTask.spaceNeeded),
+          });
+          console.log("Task fetched successfully:");
+        }
+      } catch (err) {
+        console.error("Error during fetch:", err);
+        setError("Failed to fetch task.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  const onSubmit: SubmitHandler<TaskValues> = (values) => {
+    getTask();
+  }, [id, form]);
+
+  if (isLoading) {
+    return (<div>Loading...</div>);
+  }
+
+  if (task === null) {
+    return (<h1>Task not Found</h1>);
+  }
+
+  const onSubmit: SubmitHandler<UpdateTaskValues> = (values) => {
     setError(undefined);
     console.log("Form submitted", values);
     startTransition(async () => {
       try {
-        const result = await createTask(values);
+        const result = await editTask(values);
         if ("error" in result && result.error) {
           setError(result.error);
         } else {
-          console.log("Employee created successfully", result);
-          // Handle successful creation (e.g., show a success message, redirect)
+          console.log("Task edited successfully", result);
+          // Handle successful edit (e.g., show a success message, redirect)
         }
       } catch (err) {
-        console.error("Error creating employee:", err);
+        console.error("Error editing task:", err);
         setError("An unexpected error occurred. Please try again.");
       }
     });
-  };
-
-  const onButtonClick = () => {
-    const formData = form.getValues();
-    onSubmit(formData);
   };
 
   if (!selectedOrg) {
@@ -79,21 +110,19 @@ export default function TaskForm() {
       <form onSubmit={form.handleSubmit(onSubmit)}>
         <CardContent className="space-y-4">
           {error && <p className="text-center text-destructive">{error}</p>}
-          <div className="space-y-2">
-            <FormField
-              control={form.control}
-              name="task"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Task Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter task name" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+          <FormField
+            control={form.control}
+            name="task"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Task Name</FormLabel>
+                <FormControl>
+                  <Input placeholder="Enter task name" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           <div className="flex space-x-2">
             <FormField
               control={form.control}
@@ -135,39 +164,36 @@ export default function TaskForm() {
               )}
             />
           </div>
-          <div className="space-y-2">
-            <FormField
-              control={form.control}
-              name="spaceNeeded"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Space Needed</FormLabel>
-                  <FormControl>
-                    <Input
+          <FormField
+            control={form.control}
+            name="spaceNeeded"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Space Needed</FormLabel>
+                <FormControl>
+                  <Input
                     type="number"
-                      placeholder="Enter space needed for the task"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-          <div className="space-y-2">
-          </div>
+                    placeholder="Enter space needed for the task"
+                    {...field}
+                    onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </CardContent>
         <CardFooter>
           <LoadingButton
-            type="button"
-            onClick={onButtonClick}
+            type="submit"
             className="w-full"
             loading={isPending}
           >
-            Create Task
+            Edit Task
           </LoadingButton>
         </CardFooter>
       </form>
     </Form>
   );
 }
+

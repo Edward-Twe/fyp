@@ -50,6 +50,7 @@ export default function TasksPage() {
         }
       } catch (err) {
         setError("An unexpected error occurred");
+        console.error("Error during fetch:", err);
       } finally {
         setIsLoading(false);
       }
@@ -57,6 +58,10 @@ export default function TasksPage() {
 
     fetchTasks();
   }, [selectedOrg]);
+
+  if (error) {
+    return <div>{error}</div>
+  }
 
   if (isLoading) {
     return <div>Loading...</div>;

@@ -91,6 +91,12 @@ export const jobOrderTaskSchema = z.object({
 export const jobOrderSchema = z.object({
   orderNumber: z.string().min(1, "Order number is required"),
   address: z.string().min(1, "Address is required"),
+  city: z.string(), 
+  postCode: z.string(), 
+  state: z.string(), 
+  country: z.string(), 
+  latitude: z.number(),
+  longitude: z.number(),
   orgId: requiredString, 
   tasks: z.array(jobOrderTaskSchema).min(1, "At least one task is required"),
 });

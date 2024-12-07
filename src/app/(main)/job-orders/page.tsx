@@ -1,30 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { MoreHorizontal } from "lucide-react";
-import Link from "next/link";
-import { Employees, JobOrders, JobOrderTask, Tasks } from "@prisma/client";
+import { JobOrders, JobOrderTask, Tasks } from "@prisma/client";
 import { loadJobOrders } from "./loadJobOrders";
 import { useOrganization } from "@/app/contexts/OrganizationContext";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { Plus } from "lucide-react";
 
 type JobOrderWithTasks = JobOrders & {
     JobOrderTask: (JobOrderTask & {
@@ -57,6 +40,7 @@ export default function JobOrdersPage() {
         }
       } catch (err) {
         setError("An unexpected error occurred");
+        console.error("Error during fetch:", err);
       } finally {
         setIsLoading(false);
       }
@@ -74,7 +58,7 @@ export default function JobOrdersPage() {
 
   return (
     <div className="container mx-auto py-10">
-      {/* <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Job Orders</h1>
         <Button asChild>
           <Link href="/job-orders/create">
@@ -83,49 +67,6 @@ export default function JobOrdersPage() {
           </Link>
         </Button>
       </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-[100px]">Name</TableHead>
-            <TableHead>Area</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {employees.map((employee) => (
-            <TableRow key={employee.id}>
-              <TableCell className="font-medium">{employee.name}</TableCell>
-              <TableCell>{!employee.area ? "-" : employee.area}</TableCell>
-              <TableCell>{!employee.email ? "-" : employee.email}</TableCell>
-              <TableCell className="text-right">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuItem
-                      onClick={() => navigator.clipboard.writeText(employee.id)}
-                    >
-                      Copy employee ID
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link href={`/employees/edit/${employee.id}`}>
-                        Edit employee
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>Delete employee</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table> */}
       <div className="space-y-4">
       {jobOrders.map((jobOrder) => (
         <Accordion type="single" collapsible key={jobOrder.id}>

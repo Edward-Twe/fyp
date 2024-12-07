@@ -2,7 +2,7 @@
 
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
-import { jobOrderSchema, JobOrderValues, taskSchema, TaskValues } from "@/lib/validation";
+import { jobOrderSchema, JobOrderValues } from "@/lib/validation";
 import { isRedirectError } from "next/dist/client/components/redirect";
 import { redirect } from 'next/navigation';
 
@@ -14,7 +14,7 @@ export async function createJobOrder(
   if (!user) throw Error("Unauthorized");
 
   try {
-    const { orderNumber, address, orgId, tasks } = jobOrderSchema.parse(values);
+    const { orderNumber, address, city, postCode, state, country, orgId, latitude, longitude, tasks } = jobOrderSchema.parse(values);
 
     const organization = await prisma.organization.findFirst({
         where: {
@@ -29,7 +29,13 @@ export async function createJobOrder(
     await prisma.jobOrders.create({
       data: {
         orderNumber,
-        address,
+        address, 
+        city, 
+        postCode, 
+        state, 
+        country, 
+        latitude, 
+        longitude, 
         orgId,
         JobOrderTask: {
           create: tasks.map(task => ({

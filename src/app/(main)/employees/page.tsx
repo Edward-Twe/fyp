@@ -50,6 +50,7 @@ export default function EmployeesPage() {
         }
       } catch (err) {
         setError("An unexpected error occurred");
+        console.log(err)
       } finally {
         setIsLoading(false);
       }

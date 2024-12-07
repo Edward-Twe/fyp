@@ -25,7 +25,7 @@ export async function createOrganization(
         ownerId: user.id,
       },
     });
-
+    
     return redirect("/");
   } catch (error) {
     if (isRedirectError(error)) throw error;

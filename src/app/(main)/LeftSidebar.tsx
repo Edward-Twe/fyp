@@ -86,6 +86,7 @@ function LeftSidebarContent({
     setCollapsed(isSmallScreen);
   }, [isSmallScreen]);
 
+  //TODO: Auto refresh after create org
   React.useEffect(() => {
     const fetchOrganizations = async () => {
       const result = await loadOrganizations();

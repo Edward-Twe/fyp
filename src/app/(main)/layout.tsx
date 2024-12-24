@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import SessionProvider from "./SessionProvider";
 import LeftSidebar from "./LeftSidebar";
 import { validateRequest } from "@/auth";
+import { GoogleMapsProvider } from "../../components/GoogleMapsProvider";
 
 export default async function Layout({
   children,
@@ -16,10 +17,11 @@ export default async function Layout({
   // make sure all child component have access to the session cookie.
   return (
   <SessionProvider value={session}>
-    <div className="">
-      <LeftSidebar>{children}</LeftSidebar>
-        
-    </div>
+      <LeftSidebar>
+        <GoogleMapsProvider>
+          {children}
+        </GoogleMapsProvider>
+      </LeftSidebar>
   </SessionProvider>
   );
 }

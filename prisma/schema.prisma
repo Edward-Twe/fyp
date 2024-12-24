@@ -56,6 +56,7 @@ model Organization {
   Employees Employees[]
   Tasks     Tasks[]
   JobOrders JobOrders[]
+  Schedules Schedules[]
 
   @@map("organizations")
 }
@@ -69,6 +70,7 @@ model Employees {
   userId       String?
   organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   user         User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  JobOrders    JobOrders[]
 
   @@map("employees")
 }
@@ -92,6 +94,12 @@ model Tasks {
   @@map("tasks")
 }
 
+enum Status {
+  unscheduled
+  todo
+  completed
+}
+
 model JobOrders {
   id          String   @id @default(cuid())
   orderNumber String
@@ -107,6 +115,11 @@ model JobOrders {
 
   organization Organization   @relation(fields: [orgId], references: [id], onDelete: Cascade)
   JobOrderTask JobOrderTask[]
+  schedules    Schedules?     @relation(fields: [schedulesId], references: [id], onDelete: SetNull)
+  schedulesId  String?
+  status       Status         @default(unscheduled)
+  scheduledEmp Employees?     @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  employeeId   String?
 
   @@map("job_orders")
 }
@@ -124,3 +137,28 @@ model JobOrderTask {
   @@unique([jobOrderId, taskId])
   @@map("job_order_task")
 }
+
+model Schedules {
+  id              String   @id @default(cuid())
+  name            String
+  orgId           String
+  createdAt       DateTime @default(now())
+  departAddress   String
+  departCity      String
+  departPostCode  String
+  departState     String
+  departCountry   String
+  departLatitude  Decimal
+  departLongitude Decimal
+  departTime      DateTime
+
+  jobOrder     JobOrders[]
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@map("schedules")
+}
+
+// model ScheduledJobOrders {
+//   id String 
+//   jobOrderId String
+// }

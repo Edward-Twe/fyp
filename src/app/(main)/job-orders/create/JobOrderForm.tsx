@@ -27,7 +27,8 @@ import { Button } from "@/components/ui/button";
 import { Plus, X } from 'lucide-react';
 import LoadingButton from "@/components/Loadingbutton";
 import { CardContent, CardFooter } from "@/components/ui/card";
-import { StandaloneSearchBox, LoadScript } from "@react-google-maps/api";
+import { StandaloneSearchBox } from "@react-google-maps/api";
+import { useGoogleMaps } from "@/components/GoogleMapsProvider";
 
 interface Task {
   id: string;
@@ -44,7 +45,7 @@ export default function JobOrderForm() {
   const { selectedOrg } = useOrganization();
   const addressInputRef = useRef<HTMLInputElement>(null);
   const searchBoxRef = useRef<google.maps.places.SearchBox | null>(null);
-  const [isGoogleMapsLoaded, setIsGoogleMapsLoaded] = useState(false);
+  const { isLoaded, loadError } = useGoogleMaps();
 
   const form = useForm<JobOrderValues>({
     resolver: zodResolver(jobOrderSchema),
@@ -171,11 +172,6 @@ export default function JobOrderForm() {
     return <h1>{error}</h1>
   }
 
-  const googleMapsApiKey = 'AIzaSyBlvQMPifdwa_9zeuK-NHCBsSRMI4tNfJk';
-
-  if (!googleMapsApiKey) {
-    return <h1>Google Maps API key is not set. Please check your environment variables.</h1>;
-  }
 
   return (
     <Form {...form}>
@@ -203,33 +199,28 @@ export default function JobOrderForm() {
               <FormItem>
                 <FormLabel>Address</FormLabel>
                 <FormControl>
-                  <LoadScript 
-                    googleMapsApiKey={googleMapsApiKey}
-                    libraries={["places"]}
-                    onLoad={() => setIsGoogleMapsLoaded(true)}
-                    onError={(error) => {
-                      console.error("Error loading Google Maps API:", error);
-                      setError("Failed to load Google Maps. Please try again later.");
-                    }}
-                  >
-                    {isGoogleMapsLoaded ? (
-                      <StandaloneSearchBox
-                        onLoad={(ref) => {
-                          searchBoxRef.current = ref;
-                        }}
-                        onPlacesChanged={handlePlaceChanged}
-                      >
-                        <Input {...field} ref={addressInputRef} />
-                      </StandaloneSearchBox>
-                    ) : (
-                      <Input {...field} disabled placeholder="Loading Google Maps..." />
-                    )}
-                  </LoadScript>
+                  {isLoaded ? (
+                    <StandaloneSearchBox
+                      onLoad={(ref) => {
+                        searchBoxRef.current = ref;
+                      }}
+                      onPlacesChanged={handlePlaceChanged}
+                    >
+                      <Input {...field} ref={addressInputRef} />
+                    </StandaloneSearchBox>
+                  ) : (
+                    <Input {...field} disabled placeholder="Loading Google Maps..." />
+                  )}
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
+          {loadError && (
+            <FormMessage>
+              Failed to load Google Maps. Please try again later.
+            </FormMessage>
+          )}
 
           <div className="space-y-4 mt-4">
             <div className="flex items-center justify-between">

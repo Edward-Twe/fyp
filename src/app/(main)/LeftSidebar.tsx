@@ -249,7 +249,7 @@ function LeftSidebarContent({
             <UserButton />
           </div>
         </header>
-        <main className="flex-1 overflow-y-auto p-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-400">
+        <main className="flex-1 overflow-y-auto p-0 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-400">
           {children}
         </main>
       </div>

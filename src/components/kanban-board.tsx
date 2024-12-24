@@ -1,60 +1,142 @@
-'use client'
+"use client"
 
-import React, { useState } from 'react'
-import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd'
+import React, { useEffect, useState, useRef } from "react"
+import {
+  DragDropContext,
+  Droppable,
+  Draggable,
+  DropResult,
+} from "@hello-pangea/dnd"
 import { Card, CardHeader, CardContent } from "@/components/ui/card"
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence } from "framer-motion"
+import { Employees, JobOrders, JobOrderTask, Tasks } from "@prisma/client"
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "./ui/accordion"
 
-// Define the structure of a task
-interface Task {
-  id: string
-  content: string
+type JobOrderWithTasks = JobOrders & {
+  JobOrderTask: (JobOrderTask & {
+    task: Tasks
+  })[]
 }
 
-// Define the structure of a column
 interface Column {
   id: string
   title: string
-  tasks: Task[]
+  jobOrders: JobOrderWithTasks[]
 }
 
-// Initial state for the Kanban board
-const initialColumns: { [key: string]: Column } = {
-  todo: {
-    id: 'todo',
-    title: 'To Do',
-    tasks: [
-      { id: 'task-1', content: 'Create login page' },
-      { id: 'task-2', content: 'Design database schema' },
-    ],
-  },
-  inProgress: {
-    id: 'inProgress',
-    title: 'In Progress',
-    tasks: [
-      { id: 'task-3', content: 'Implement user authentication' },
-    ],
-  },
-  done: {
-    id: 'done',
-    title: 'Done',
-    tasks: [
-      { id: 'task-4', content: 'Project setup' },
-    ],
-  },
+interface Columns {
+  [key: string]: Column
 }
 
-export default function KanbanBoard() {
-  const [columns, setColumns] = useState(initialColumns)
-  const [ripple, setRipple] = useState('')
+interface KanbanBoardProps {
+  employees: Employees[]
+  jobOrders: JobOrderWithTasks[]
+}
+
+const SCROLL_SPEED = 15
+const SCROLL_THRESHOLD = 150
+
+export default function KanbanBoard({
+  employees,
+  jobOrders,
+}: KanbanBoardProps) {
+  const [columns, setColumns] = useState<Columns>({})
+  const [ripple, setRipple] = useState("")
+  const [isDragging, setIsDragging] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const scrollIntervalRef = useRef<NodeJS.Timeout>()
+
+  useEffect(() => {
+    if (jobOrders.length > 0) {
+      const initialColumns: Columns = {
+        jobOrders: {
+          id: "jobOrders",
+          title: "Job Orders",
+          jobOrders: jobOrders,
+        },
+      }
+
+      if (employees.length > 0) {
+        const employeeColumns: Columns = employees.reduce((acc, employee) => {
+          acc[employee.id] = {
+            id: employee.id,
+            title: employee.name,
+            jobOrders: [],
+          }
+          return acc
+        }, {} as Columns)
+
+        setColumns({
+          ...initialColumns,
+          ...employeeColumns,
+        })
+      } else {
+        setColumns(initialColumns)
+      }
+    }
+  }, [employees, jobOrders])
+
+  const handleScroll = (e: React.DragEvent<HTMLDivElement>) => {
+    if (!isDragging || !containerRef.current) return
+
+    const container = containerRef.current
+    const { clientX, clientY } = e
+    const { left, right } = container.getBoundingClientRect()
+    
+    // Clear any existing scroll interval
+    if (scrollIntervalRef.current) {
+      clearInterval(scrollIntervalRef.current)
+    }
+
+    // Horizontal scrolling
+    if (clientX < left + SCROLL_THRESHOLD) {
+      scrollIntervalRef.current = setInterval(() => {
+        container.scrollLeft -= SCROLL_SPEED
+      }, 16)
+    } else if (clientX > right - SCROLL_THRESHOLD) {
+      scrollIntervalRef.current = setInterval(() => {
+        container.scrollLeft += SCROLL_SPEED
+      }, 16)
+    }
+
+    // Vertical scrolling for the column content
+    const columns = container.getElementsByClassName('column-content')
+    for (const column of columns) {
+      const rect = column.getBoundingClientRect()
+      if (clientX >= rect.left && clientX <= rect.right) {
+        if (clientY < rect.top + SCROLL_THRESHOLD) {
+          scrollIntervalRef.current = setInterval(() => {
+            column.scrollTop -= SCROLL_SPEED
+          }, 16)
+        } else if (clientY > rect.bottom - SCROLL_THRESHOLD) {
+          scrollIntervalRef.current = setInterval(() => {
+            column.scrollTop += SCROLL_SPEED
+          }, 16)
+        }
+        break
+      }
+    }
+  }
+
+  const onDragStart = () => {
+    setIsDragging(true)
+  }
 
   const onDragEnd = (result: DropResult) => {
+    setIsDragging(false)
+    if (scrollIntervalRef.current) {
+      clearInterval(scrollIntervalRef.current)
+    }
+
     const { source, destination } = result
 
-    // If the item was dropped outside of a droppable area
     if (!destination) return
 
-    // If the item was dropped in the same place
     if (
       source.droppableId === destination.droppableId &&
       source.index === destination.index
@@ -62,79 +144,121 @@ export default function KanbanBoard() {
       return
     }
 
-    // Find the source and destination columns
-    const sourceColumn = columns[source.droppableId]
-    const destColumn = columns[destination.droppableId]
+    setColumns((prevColumns) => {
+      const sourceColumn = prevColumns[source.droppableId]
+      const destColumn = prevColumns[destination.droppableId]
 
-    // Create new arrays for the tasks
-    const sourceTasks = Array.from(sourceColumn.tasks)
-    const destTasks = source.droppableId === destination.droppableId
-      ? sourceTasks
-      : Array.from(destColumn.tasks)
+      const sourceTasks = Array.from(sourceColumn.jobOrders)
+      const destTasks =
+        source.droppableId === destination.droppableId
+          ? sourceTasks
+          : Array.from(destColumn.jobOrders)
 
-    // Remove the task from the source column
-    const [removed] = sourceTasks.splice(source.index, 1)
+      const [removed] = sourceTasks.splice(source.index, 1)
+      destTasks.splice(destination.index, 0, removed)
 
-    // Insert the task into the destination column
-    destTasks.splice(destination.index, 0, removed)
-
-    // Update the state
-    setColumns({
-      ...columns,
-      [source.droppableId]: {
-        ...sourceColumn,
-        tasks: sourceTasks,
-      },
-      [destination.droppableId]: {
-        ...destColumn,
-        tasks: destTasks,
-      },
+      return {
+        ...prevColumns,
+        [source.droppableId]: {
+          ...sourceColumn,
+          jobOrders: sourceTasks,
+        },
+        [destination.droppableId]: {
+          ...destColumn,
+          jobOrders: destTasks,
+        },
+      }
     })
 
-    // Trigger ripple effect immediately
     setRipple(destination.droppableId)
   }
 
   return (
-    <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">Kanban Board</h1>
-      <DragDropContext onDragEnd={onDragEnd}>
-        <div className="flex gap-4">
+    <div className="flex flex-col h-full w-full overflow-hidden">
+      <h2 className="text-2xl font-bold p-4">Kanban Board</h2>
+      <DragDropContext onDragStart={onDragStart} onDragEnd={onDragEnd}>
+        <div 
+          ref={containerRef}
+          className="flex gap-4 overflow-x-auto overflow-y-hidden flex-1"
+          onDragOver={handleScroll}
+          style={{ scrollBehavior: 'smooth' }}
+        >
           {Object.values(columns).map((column) => (
-            <div key={column.id} className="flex-1">
-              <Card className="relative overflow-hidden">
+            <div 
+              key={column.id} 
+              className="flex-shrink-0 w-[300px]"
+            >
+              <Card className="h-full flex flex-col">
                 <AnimatePresence>
                   {ripple === column.id && (
                     <motion.div
-                      className="absolute inset-0 bg-primary rounded-lg pointer-events-none"
+                      className="pointer-events-none absolute inset-0 rounded-lg bg-primary"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: [0, 0.2, 0] }}
                       transition={{ duration: 0.4, times: [0, 0.1, 1] }}
-                      onAnimationComplete={() => setRipple('')}
+                      onAnimationComplete={() => setRipple("")}
                     />
                   )}
                 </AnimatePresence>
-                <CardHeader>
-                  <h2 className="text-lg font-semibold">{column.title}</h2>
+                <CardHeader className="flex-shrink-0 border-b py-2">
+                  <h3 className="text-lg font-semibold">{column.title}</h3>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex-grow overflow-hidden p-0">
                   <Droppable droppableId={column.id}>
                     {(provided) => (
                       <div
                         {...provided.droppableProps}
                         ref={provided.innerRef}
-                        className="min-h-[200px]"
+                        className="column-content h-full overflow-y-auto p-2"
                       >
-                        {column.tasks.map((task, index) => (
-                          <Draggable key={task.id} draggableId={task.id} index={index}>
+                        {column.jobOrders.map((order, index) => (
+                          <Draggable
+                            key={order.id}
+                            draggableId={order.id}
+                            index={index}
+                          >
                             {(provided) => (
                               <div
                                 ref={provided.innerRef}
                                 {...provided.draggableProps}
                                 {...provided.dragHandleProps}
-                                className="bg-secondary p-2 mb-2 rounded shadow"
+                                className="mb-2 rounded bg-secondary p-2 shadow"
                               >
-                                {task.content}
+                                <div key={order.id}>
+                                  <Accordion type="single" collapsible>
+                                    <AccordionItem value={order.id}>
+                                      <AccordionTrigger className="text-left">
+                                        <div>
+                                          <h4 className="text-sm font-semibold">
+                                            Order #{order.orderNumber}
+                                          </h4>
+                                          <p className="text-xs text-gray-500">
+                                            {order.address}
+                                          </p>
+                                        </div>
+                                      </AccordionTrigger>
+                                      <AccordionContent>
+                                        <div className="mt-2 space-y-2">
+                                          <h5 className="text-xs font-medium">Tasks:</h5>
+                                          <ul className="list-inside list-disc text-xs">
+                                            {order.JobOrderTask.map(
+                                              (jobOrderTask) => (
+                                                <li key={jobOrderTask.id}>
+                                                  {jobOrderTask.task.task} - Quantity:{" "}
+                                                  {jobOrderTask.quantity}
+                                                  <span className="ml-2 text-gray-500">
+                                                    ({jobOrderTask.task.requiredTimeValue.toString()}{" "}
+                                                    {jobOrderTask.task.requiredTimeUnit})
+                                                  </span>
+                                                </li>
+                                              )
+                                            )}
+                                          </ul>
+                                        </div>
+                                      </AccordionContent>
+                                    </AccordionItem>
+                                  </Accordion>
+                                </div>
                               </div>
                             )}
                           </Draggable>
@@ -152,3 +276,4 @@ export default function KanbanBoard() {
     </div>
   )
 }
+

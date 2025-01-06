@@ -32,6 +32,7 @@ export default function EmpForm() {
       name: "",
       email: "",
       area: "",
+      space: 0.0, 
     },
   });
 
@@ -112,6 +113,25 @@ export default function EmpForm() {
                   <FormLabel>Employee Area</FormLabel>
                   <FormControl>
                     <Input placeholder="Enter employee area" {...field} value={field.value ?? ""}/>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          <div className="space-y-2">
+          <FormField
+              control={form.control}
+              name="space"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Space</FormLabel>
+                  <FormControl>
+                    <Input
+                    type="number"
+                      placeholder="Enter space available"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

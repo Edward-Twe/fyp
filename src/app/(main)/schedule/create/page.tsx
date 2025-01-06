@@ -9,6 +9,7 @@ import { loadEmployees } from "../../employees/loadEmployees"
 import { useOrganization } from "@/app/contexts/OrganizationContext"
 import { loadJobOrders } from "../../job-orders/loadJobOrders"
 import { parseISO, isValid, format } from "date-fns"
+import { Button } from "@/components/ui/button"
 
 type JobOrderWithTasks = JobOrders & {
   JobOrderTask: (JobOrderTask & {
@@ -85,7 +86,7 @@ export default function Schedules() {
 
   return (
     <div className="flex flex-col h-full w-full overflow-hidden">
-      <div className="flex-shrink-0 p-4 space-y-4">
+      <div className="flex-shrink-0 p-4 pb-0 space-y-4">
         <div className="flex gap-4">
           <SelectionDialog
             title="Employees"
@@ -108,6 +109,9 @@ export default function Schedules() {
             departure={departure}
             onDepartureChange={setDeparture}
           />
+          <Button size="sm" variant="outline">
+            AutoSched
+          </Button>
         </div>
         
         {departure && (

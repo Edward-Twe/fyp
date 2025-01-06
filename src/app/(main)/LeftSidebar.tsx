@@ -1,17 +1,7 @@
 "use client";
 
 import * as React from "react";
-import {
-  ChevronDown,
-  Settings,
-  Calendar,
-  CheckSquare,
-  Users,
-  Package,
-  BarChart3,
-  Home,
-  PlusCircle,
-} from "lucide-react";
+import { ChevronDown, Settings, Calendar, CheckSquare, Users, Package, BarChart3, Home, PlusCircle } from 'lucide-react';
 
 import UserButton from "@/components/UserButton";
 import { Button } from "@/components/ui/button";
@@ -86,7 +76,6 @@ function LeftSidebarContent({
     setCollapsed(isSmallScreen);
   }, [isSmallScreen]);
 
-  //TODO: Auto refresh after create org
   React.useEffect(() => {
     const fetchOrganizations = async () => {
       const result = await loadOrganizations();
@@ -101,10 +90,11 @@ function LeftSidebarContent({
   }, []);
 
   return (
-    <div className="relative flex h-screen bg-card">
+    <div className="relative flex h-screen overflow-hidden bg-card">
+      {/* Fixed Sidebar */}
       <div
         className={cn(
-          "flex flex-col gap-4 border-r bg-background p-4 transition-all",
+          "flex h-screen flex-col gap-4 border-r bg-background p-4 transition-all",
           collapsed ? "w-16" : "w-64",
           className,
         )}
@@ -167,7 +157,10 @@ function LeftSidebarContent({
                         <span>{organization.name}</span>
                       </DropdownMenuItem>
                     ))}
-                    <DropdownMenuItem className="cursor-pointer" onClick={() => redirect('/organizations')}>
+                    <DropdownMenuItem 
+                      className="cursor-pointer" 
+                      onClick={() => redirect('/organizations')}
+                    >
                       <PlusCircle className="ml-2 mr-4 h-8 w-8 rounded-full object-cover" />
                       <span>Create New</span>
                     </DropdownMenuItem>
@@ -179,7 +172,13 @@ function LeftSidebarContent({
         </div>
 
         <nav className="flex flex-col gap-2">
-          <NavItem collapsed={collapsed} icon={Home} label="Home" href="/" disabled={false}/>
+          <NavItem 
+            collapsed={collapsed} 
+            icon={Home} 
+            label="Home" 
+            href="/" 
+            disabled={false}
+          />
           <NavItem
             collapsed={collapsed}
             icon={Calendar}
@@ -228,9 +227,10 @@ function LeftSidebarContent({
         </div>
       </div>
 
-      {/* Header */}
-      <div className="flex h-full flex-1 flex-col">
-        <header className="flex h-14 items-center border-b bg-card px-6">
+      {/* Main content area with fixed header */}
+      <div className="flex h-screen flex-1 flex-col overflow-hidden">
+        {/* Fixed Header */}
+        <header className="flex h-14 shrink-0 items-center border-b bg-card px-6">
           <Button
             variant="ghost"
             size="icon"
@@ -249,7 +249,9 @@ function LeftSidebarContent({
             <UserButton />
           </div>
         </header>
-        <main className="flex-1 overflow-y-auto p-0 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-400">
+
+        {/* Scrollable main content */}
+        <main className="flex-1 overflow-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-400">
           {children}
         </main>
       </div>
@@ -304,4 +306,3 @@ function NavItem({ collapsed, icon: Icon, label, href, disabled }: NavItemProps)
     </Button>
   );
 }
-

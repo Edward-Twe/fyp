@@ -165,6 +165,25 @@ export default function EmpForm({ id }: { id: string }) {
               )}
             />
           </div>
+          <div className="space-y-2">
+          <FormField
+              control={form.control}
+              name="space"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Space</FormLabel>
+                  <FormControl>
+                    <Input
+                    type="number"
+                      placeholder="Enter space available"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
           <Input
             type="hidden"
             {...form.register("orgId")}

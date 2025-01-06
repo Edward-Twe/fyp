@@ -66,6 +66,7 @@ model Employees {
   name         String
   email        String?
   area         String?
+  space        Decimal
   orgId        String
   userId       String?
   organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)

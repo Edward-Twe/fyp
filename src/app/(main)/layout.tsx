@@ -17,7 +17,7 @@ export default async function Layout({
   // make sure all child component have access to the session cookie.
   return (
   <SessionProvider value={session}>
-      <LeftSidebar>
+      <LeftSidebar className="max-h-">
         <GoogleMapsProvider>
           {children}
         </GoogleMapsProvider>

@@ -42,6 +42,7 @@ export const employeeSchema = z.object({
     (value) => (value === "" ? null : value), // Convert empty string to null
     z.string().email("Invalid email address").nullable().optional() // Validate email
   ),
+  space: z.coerce.number().min(0), 
   area: z.string().nullable().optional(), 
   orgId: requiredString
 });
@@ -55,6 +56,7 @@ export const updateEmployeeSchema = z.object({
     (value) => (value === "" ? null : value), // Convert empty string to null
     z.string().email("Invalid email address").nullable().optional() // Validate email
   ),
+  space: z.coerce.number().min(0), 
   area: z.string().nullable().optional(), 
   orgId: requiredString
 });

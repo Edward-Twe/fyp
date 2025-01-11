@@ -106,6 +106,23 @@ export const jobOrderSchema = z.object({
 
 export type JobOrderValues = z.infer<typeof jobOrderSchema>;
 
+export const updateJobOrderSchema = z.object({
+  id: requiredString, 
+  orderNumber: z.string().min(1, "Order number is required"),
+  address: z.string().min(1, "Address is required"),
+  city: z.string(), 
+  postCode: z.string(), 
+  state: z.string(), 
+  country: z.string(), 
+  latitude: z.number(),
+  longitude: z.number(),
+  orgId: requiredString, 
+  tasks: z.array(jobOrderTaskSchema).min(1, "At least one task is required"),
+  spaceRequried: z.number()
+});
+
+export type UpdateJobOrderValues = z.infer<typeof updateJobOrderSchema>;
+
 export const scheduleSchema = z.object({
   name: z.string().min(1, "Name is required"),
   departAddress: z.string().min(1, "Address is required"),

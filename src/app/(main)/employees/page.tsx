@@ -24,6 +24,19 @@ import Link from "next/link";
 import { Employees } from "@prisma/client";
 import { loadEmployees } from "./loadEmployees";
 import { useOrganization } from "@/app/contexts/OrganizationContext";
+import { deleteEmployee } from "./delete/action";
+import { toast } from "@/components/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export default function EmployeesPage() {
   // fetch the selected organization
@@ -38,7 +51,7 @@ export default function EmployeesPage() {
         setIsLoading(false);
         return;
       }
-      
+
       setIsLoading(true);
       try {
         const result = await loadEmployees(selectedOrg.id);
@@ -50,7 +63,7 @@ export default function EmployeesPage() {
         }
       } catch (err) {
         setError("An unexpected error occurred");
-        console.log(err)
+        console.log(err);
       } finally {
         setIsLoading(false);
       }
@@ -59,12 +72,35 @@ export default function EmployeesPage() {
     fetchEmployees();
   }, [selectedOrg]);
 
+  const handleDeleteEmployee = async (employeeId: string) => {
+    const result = await deleteEmployee(employeeId);
+    if (result.success) {
+      toast({
+        title: "Success",
+        description: result.message,
+      });
+      // Refresh the employee list
+      const updatedEmployees = employees.filter((emp) => emp.id !== employeeId);
+      setEmployees(updatedEmployees);
+    } else {
+      toast({
+        title: "Error",
+        description: result.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   if (isLoading) {
     return <div>Loading...</div>;
   }
 
   if (!selectedOrg)
     return <h1>Please Select or Create an Organization first!</h1>;
+
+  if (error) {
+    return error;
+  }
 
   return (
     <div className="container mx-auto py-10">
@@ -112,7 +148,32 @@ export default function EmployeesPage() {
                         Edit employee
                       </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem>Delete employee</DropdownMenuItem>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                          Delete employee
+                        </DropdownMenuItem>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>
+                            Are you absolutely sure?
+                          </AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This action cannot be undone. This will permanently
+                            delete the employee and all related data.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDeleteEmployee(employee.id)}
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>

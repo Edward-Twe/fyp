@@ -52,7 +52,7 @@ export async function createJobOrder(
       }
     });
 
-    return redirect("/");
+    return redirect("/job-orders");
   } catch (error) {
     if (isRedirectError(error)) throw error;
     console.error(error);

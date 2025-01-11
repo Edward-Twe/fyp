@@ -36,7 +36,7 @@ export async function createEmployee(
       },
     });
 
-    return redirect("/");
+    return redirect("/employees");
   } catch (error) {
     if (isRedirectError(error)) throw error;
     console.error(error);

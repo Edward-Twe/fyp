@@ -190,31 +190,6 @@ export default function EmpForm({ id }: { id: string }) {
             value={selectedOrg.id}
           />
           <div className="space-y-2">
-            {/* <Label htmlFor="logo">employee Logo</Label> */}
-            {/* <div className="flex items-center space-x-4">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                >
-                  <Upload className="mr-2 h-4 w-4" /> Upload Logo
-                </Button>
-                <Input 
-                  id="logo" 
-                  type="file" 
-                  className="hidden" 
-                  onChange={handleLogoChange} 
-                  accept="image/*"
-                />
-                {logoPreview && (
-                  <div className="relative w-16 h-16">
-                    <img 
-                      src={logoPreview} 
-                      alt="Logo preview" 
-                      className="w-full h-full object-cover rounded-md"
-                    />
-                  </div>
-                )}
-              </div> */}
           </div>
         </CardContent>
         <CardFooter>

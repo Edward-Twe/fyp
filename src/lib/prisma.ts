@@ -1,7 +1,6 @@
 import { Prisma, PrismaClient } from "@prisma/client";
 
 const prismaClientSingleton = () => {
-
   const client = new PrismaClient();
 
   // Recursive function to convert Decimal to number
@@ -17,6 +16,11 @@ const prismaClientSingleton = () => {
       return item.map(convertDecimalToNumber);
     }
     
+    // Skip Date objects
+    if (item instanceof Date) {
+      return item;
+    }
+    
     return Object.fromEntries(
       Object.entries(item).map(([key, value]) => [key, convertDecimalToNumber(value)])
     );
@@ -26,12 +30,16 @@ const prismaClientSingleton = () => {
   client.$use(async (params, next) => {
     const result = await next(params);
 
-    if (
+    // Fix the condition grouping with proper parentheses
+    if ((
       params.model === "Tasks" || 
       params.model === "JobOrders" || 
-      params.model === "Employees" &&
-      (params.action === "findMany" || params.action === "findUnique")
-    ) {
+      params.model === "Employees" || 
+      params.model === "Schedules"
+    ) && (
+      params.action === "findMany" || 
+      params.action === "findUnique"
+    )) {
       return convertDecimalToNumber(result);
     }
 

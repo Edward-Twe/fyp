@@ -47,7 +47,6 @@ export async function createJobOrder(
           }))
         }
       },
-      //make sure to return this value as well
       include: {
         JobOrderTask: true
       }

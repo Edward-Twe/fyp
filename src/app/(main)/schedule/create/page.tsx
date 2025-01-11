@@ -4,7 +4,7 @@ import KanbanBoard from "@/components/kanban-board"
 import { SelectionDialog } from "@/components/SelectionDialog"
 import { DepartureDialog, type DepartureInfo } from "@/components/DepartureDialog"
 import { Employees } from "@prisma/client"
-import { useEffect, useState } from "react"
+import { startTransition, useEffect, useState } from "react"
 import { loadEmployees } from "../../employees/loadEmployees"
 import { useOrganization } from "@/app/contexts/OrganizationContext"
 import { loadJobOrders } from "../../job-orders/loadJobOrders"
@@ -13,8 +13,12 @@ import { Button } from "@/components/ui/button"
 import { optimizeRoutes } from "./AutoSced"
 import { Location, JobOrderWithTasks, Columns } from "@/app/types/routing"
 import { ErrorAlert } from "@/components/ui/alert-box"
+import { createSchedule } from "./action"
+import { SaveScheduleDialog } from "./save-schedule-dialog"
+import { ScheduleValues } from "@/lib/validation"
 
 export default function Schedules() {
+  const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const { selectedOrg } = useOrganization()
   const [employees, setEmployees] = useState<Employees[]>([])
   const [jobOrders, setJobOrders] = useState<JobOrderWithTasks[]>([])
@@ -120,6 +124,45 @@ export default function Schedules() {
     }
   }
 
+  async function handleSave(name: string) {
+    if (!departure || !selectedOrg) {
+      setError("Missing required information")
+      return
+    }
+
+    const scheduleData: ScheduleValues = {
+      name,
+      departAddress: departure.location.address,
+      departCity: departure.location.city,
+      departPostCode: departure.location.postCode,
+      departState: departure.location.state,
+      departCountry: departure.location.country,
+      departLatitude: departure.location.latitude,
+      departLongitude: departure.location.longitude,
+      orgId: selectedOrg.id,
+      departTime: departure.datetime,
+    }
+
+    setError(null)
+    startTransition(async () => {
+      try {
+        const result = await createSchedule(scheduleData, columns)
+        if ("error" in result && result.error) {
+          setError(result.error)
+        } else {
+          console.log("Schedule created successfully", result)
+        }
+      } catch (err) {
+        console.error("Error creating schedule:", err)
+        setError("An unexpected error occurred. Please try again.")
+      }
+    })
+  }
+
+
+  // ... rest of the component remains the same ...
+
+
   if (isLoading) return <div className="p-4">Loading...</div>
 
   return (
@@ -151,6 +194,21 @@ export default function Schedules() {
           <Button size="sm" variant="outline" onClick={autoSchedule}>
             AutoSched
           </Button>
+          <Button 
+        size="sm" 
+        variant="outline" 
+        onClick={() => setIsSaveDialogOpen(true)}
+        disabled={!departure || !selectedOrg}
+      >
+        Save
+      </Button>
+      {departure && selectedOrg && (
+        <SaveScheduleDialog
+        isOpen={isSaveDialogOpen}
+        onClose={() => setIsSaveDialogOpen(false)}
+        onSave={handleSave}
+      />
+      )}
         </div>
         
         {departure && (

@@ -184,8 +184,7 @@ export default function KanbanBoard({
   }
 
   return (
-    <div className="flex flex-col h-full w-full overflow-hidden p-4 pt-0">
-      <h2 className="text-2xl font-bold p-4">Kanban Board</h2>
+    <div className="flex flex-col h-full w-full overflow-hidden p-4">
       <DragDropContext onDragStart={onDragStart} onDragEnd={onDragEnd}>
         <div 
           ref={containerRef}

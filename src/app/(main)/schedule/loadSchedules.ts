@@ -19,6 +19,8 @@ export async function loadSchedules(orgId: string | undefined) {
       return [];
     }
 
+    console.log(schedules);
+
     return schedules;
   } catch (error) {
     console.error(error);

@@ -105,3 +105,18 @@ export const jobOrderSchema = z.object({
 });
 
 export type JobOrderValues = z.infer<typeof jobOrderSchema>;
+
+export const scheduleSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  departAddress: z.string().min(1, "Address is required"),
+  departCity: z.string(), 
+  departPostCode: z.string(), 
+  departState: z.string(), 
+  departCountry: z.string(), 
+  departLatitude: z.number(),
+  departLongitude: z.number(),
+  orgId: requiredString, 
+  departTime: z.date(),
+});
+
+export type ScheduleValues = z.infer<typeof scheduleSchema>;

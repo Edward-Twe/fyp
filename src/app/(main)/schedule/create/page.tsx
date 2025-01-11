@@ -3,19 +3,16 @@
 import KanbanBoard from "@/components/kanban-board"
 import { SelectionDialog } from "@/components/SelectionDialog"
 import { DepartureDialog, type DepartureInfo } from "@/components/DepartureDialog"
-import { Employees, JobOrders, JobOrderTask, Tasks } from "@prisma/client"
+import { Employees } from "@prisma/client"
 import { useEffect, useState } from "react"
 import { loadEmployees } from "../../employees/loadEmployees"
 import { useOrganization } from "@/app/contexts/OrganizationContext"
 import { loadJobOrders } from "../../job-orders/loadJobOrders"
 import { parseISO, isValid, format } from "date-fns"
 import { Button } from "@/components/ui/button"
-
-type JobOrderWithTasks = JobOrders & {
-  JobOrderTask: (JobOrderTask & {
-    task: Tasks
-  })[]
-}
+import { optimizeRoutes } from "./AutoSced"
+import { Location, JobOrderWithTasks, Columns } from "@/app/types/routing"
+import { ErrorAlert } from "@/components/ui/alert-box"
 
 export default function Schedules() {
   const { selectedOrg } = useOrganization()
@@ -26,6 +23,7 @@ export default function Schedules() {
   const [departure, setDeparture] = useState<DepartureInfo | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [columns, setColumns] = useState<Columns>({})
 
   useEffect(() => {
     async function fetchEmpJob() {
@@ -67,25 +65,66 @@ export default function Schedules() {
         return isValid(date) ? date.toISOString() : new Date().toISOString();
       }
       
-      // Try parsing as ISO string first
       const parsedDate = parseISO(date);
       if (isValid(parsedDate)) {
         return parsedDate.toISOString();
       }
 
-      // If parsing fails, return current date
       return new Date().toISOString();
     } catch {
       return new Date().toISOString();
     }
   };
 
-  if (error) return <div className="p-4 text-red-500">{error}</div>
+  async function autoSchedule() {
+    if (!departure || selectedEmployees.length === 0 || selectedJobOrders.length === 0) {
+      setError("Please select departure location, employees, and job orders")
+      return
+    }
+
+    try {
+      const depot: Location = {
+        lat: departure.location.latitude,
+        lng: departure.location.longitude
+      }
+
+      const schedule = await optimizeRoutes(selectedJobOrders, selectedEmployees, depot)
+      
+      // Create new columns state based on optimized assignments
+      const newColumns: Columns = {
+        jobOrders: {
+          id: 'jobOrders',
+          title: 'Job Orders',
+          jobOrders: []
+        }
+      }
+
+      // Add employee columns and assign job orders based on optimization results
+      schedule.assignments.forEach(assignment => {
+        const employee = selectedEmployees.find(emp => emp.id === assignment.employeeId)
+        if (employee) {
+          newColumns[employee.id] = {
+            id: employee.id,
+            title: employee.name,
+            jobOrders: assignment.jobOrders as JobOrderWithTasks[]
+          }
+        }
+      })
+
+      // Update columns state
+      setColumns(newColumns)
+      
+    } catch (error) {
+      console.error('Error in auto-scheduling:', error)
+      setError('Failed to optimize routes')
+    }
+  }
 
   if (isLoading) return <div className="p-4">Loading...</div>
 
   return (
     <div className="flex flex-col h-full w-full overflow-hidden">
+      <ErrorAlert error={error} onClose={() => setError(null)} />
       <div className="flex-shrink-0 p-4 pb-0 space-y-4">
         <div className="flex gap-4">
           <SelectionDialog
@@ -109,7 +148,7 @@ export default function Schedules() {
             departure={departure}
             onDepartureChange={setDeparture}
           />
-          <Button size="sm" variant="outline">
+          <Button size="sm" variant="outline" onClick={autoSchedule}>
             AutoSched
           </Button>
         </div>
@@ -141,7 +180,10 @@ export default function Schedules() {
         ) : (
           <KanbanBoard 
             employees={selectedEmployees} 
-            jobOrders={selectedJobOrders} 
+            jobOrders={selectedJobOrders}
+            columns={columns}
+            onColumnsChange={setColumns} 
+            depot={departure?.location}
           />
         )}
       </div>

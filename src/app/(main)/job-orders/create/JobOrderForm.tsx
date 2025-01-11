@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/select";
 import { loadTasks } from "../../tasks/loadTasks";
 import { Button } from "@/components/ui/button";
-import { Plus, X } from 'lucide-react';
+import { Plus, X } from "lucide-react";
 import LoadingButton from "@/components/Loadingbutton";
 import { CardContent, CardFooter } from "@/components/ui/card";
 import { StandaloneSearchBox } from "@react-google-maps/api";
@@ -56,6 +56,7 @@ export default function JobOrderForm() {
       longitude: 0,
       orgId: selectedOrg?.id || "",
       tasks: [],
+      spaceRequried: 0
     },
   });
 
@@ -63,14 +64,15 @@ export default function JobOrderForm() {
     form.reset({
       orderNumber: "",
       address: "",
-      city: "", 
-      postCode: "", 
-      state: "", 
-      country: "", 
+      city: "",
+      postCode: "",
+      state: "",
+      country: "",
       latitude: 0,
       longitude: 0,
       orgId: selectedOrg?.id || "",
       tasks: [],
+      spaceRequried: 0,
     });
     if (selectedOrg?.id) {
       loadTasks(selectedOrg.id).then((tasks) => {
@@ -92,29 +94,31 @@ export default function JobOrderForm() {
       if (addressComponents) {
         const getAddressComponent = (
           components: google.maps.GeocoderAddressComponent[],
-          type: string
+          type: string,
         ): string | null => {
           const component = components.find((c) => c.types.includes(type));
           return component ? component.long_name : null;
         };
-  
+
         // Extract city, postcode, and state
         const city = getAddressComponent(addressComponents, "locality");
         const postcode = getAddressComponent(addressComponents, "postal_code");
-        const state = getAddressComponent(addressComponents, "administrative_area_level_1");
+        const state = getAddressComponent(
+          addressComponents,
+          "administrative_area_level_1",
+        );
         const country = getAddressComponent(addressComponents, "country");
-  
-        form.setValue('city', city || '');
-        form.setValue('postCode', postcode || '');
-        form.setValue('state', state || '');
-        form.setValue('country', country || '');
-        form.setValue('address', place.formatted_address || '');
-        form.setValue('latitude', place.geometry?.location?.lat() || 0);
-        form.setValue('longitude', place.geometry?.location?.lng() || 0);
-        console.log(places);
+
+        form.setValue("city", city || "");
+        form.setValue("postCode", postcode || "");
+        form.setValue("state", state || "");
+        form.setValue("country", country || "");
+        form.setValue("address", place.formatted_address || "");
+        form.setValue("latitude", place.geometry?.location?.lat() || 0);
+        form.setValue("longitude", place.geometry?.location?.lng() || 0);
       }
     }
-  }
+  };
 
   const calculateTotalTime = () => {
     return form.getValues("tasks").reduce((total, selectedTask) => {
@@ -127,6 +131,14 @@ export default function JobOrderForm() {
           : task.requiredTimeValue;
 
       return total + timeInMinutes * selectedTask.quantity;
+    }, 0);
+  };
+
+  const calculateTotalSpace = () => {
+    return form.getValues("tasks").reduce((total, selectedTask) => {
+      const task = availableTasks.find((t) => t.id === selectedTask.taskId);
+      if (!task) return total;
+      return total + (task.spaceNeeded * selectedTask.quantity);
     }, 0);
   };
 
@@ -143,12 +155,16 @@ export default function JobOrderForm() {
 
   const handleRemoveTask = (index: number) => {
     const currentTasks = form.getValues("tasks");
-    form.setValue("tasks", currentTasks.filter((_, i) => i !== index));
+    form.setValue(
+      "tasks",
+      currentTasks.filter((_, i) => i !== index),
+    );
   };
 
   const onSubmit: SubmitHandler<JobOrderValues> = async (values) => {
+    values.spaceRequried = calculateTotalSpace()
+    console.log(values)
     setError(undefined);
-    console.log("Form submitted", values);
     startTransition(async () => {
       try {
         const result = await createJobOrder(values);
@@ -169,9 +185,8 @@ export default function JobOrderForm() {
   }
 
   if (error) {
-    return <h1>{error}</h1>
+    return <h1>{error}</h1>;
   }
-
 
   return (
     <Form {...form}>
@@ -191,7 +206,6 @@ export default function JobOrderForm() {
             )}
           />
 
-          {/* TODO Fix performance */}
           <FormField
             control={form.control}
             name="address"
@@ -209,7 +223,11 @@ export default function JobOrderForm() {
                       <Input {...field} ref={addressInputRef} />
                     </StandaloneSearchBox>
                   ) : (
-                    <Input {...field} disabled placeholder="Loading Google Maps..." />
+                    <Input
+                      {...field}
+                      disabled
+                      placeholder="Loading Google Maps..."
+                    />
                   )}
                 </FormControl>
                 <FormMessage />
@@ -222,7 +240,7 @@ export default function JobOrderForm() {
             </FormMessage>
           )}
 
-          <div className="space-y-4 mt-4">
+          <div className="mt-4 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-medium">Tasks</h3>
               <Button
@@ -243,7 +261,10 @@ export default function JobOrderForm() {
                     name={`tasks.${index}.taskId`}
                     control={form.control}
                     render={({ field }) => (
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder="Select a task" />
                         </SelectTrigger>
@@ -268,7 +289,9 @@ export default function JobOrderForm() {
                         type="number"
                         min="1"
                         {...field}
-                        onChange={(e) => field.onChange(parseInt(e.target.value, 10) || 0)}
+                        onChange={(e) =>
+                          field.onChange(parseInt(e.target.value, 10) || 0)
+                        }
                       />
                     )}
                   />
@@ -286,9 +309,12 @@ export default function JobOrderForm() {
             ))}
 
             {form.watch("tasks").length > 0 && (
-              <div className="mt-4 rounded-lg bg-muted p-4">
+              <div className="mt-4 space-y-2 rounded-lg bg-muted p-4">
                 <p className="text-sm font-medium">
                   Total Time Required: {formatTotalTime(calculateTotalTime())}
+                </p>
+                <p className="text-sm font-medium">
+                  Total Space Required: {calculateTotalSpace()}
                 </p>
               </div>
             )}
@@ -303,4 +329,3 @@ export default function JobOrderForm() {
     </Form>
   );
 }
-

@@ -8,34 +8,25 @@ import {
   DropResult,
 } from "@hello-pangea/dnd"
 import { Card, CardHeader, CardContent } from "@/components/ui/card"
-import { motion, AnimatePresence } from "framer-motion"
-import { Employees, JobOrders, JobOrderTask, Tasks } from "@prisma/client"
+import { Employees } from "@prisma/client"
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "./ui/accordion"
-
-type JobOrderWithTasks = JobOrders & {
-  JobOrderTask: (JobOrderTask & {
-    task: Tasks
-  })[]
-}
-
-interface Column {
-  id: string
-  title: string
-  jobOrders: JobOrderWithTasks[]
-}
-
-interface Columns {
-  [key: string]: Column
-}
+import { JobOrderWithTasks, Columns, Column } from "@/app/types/routing"
+import { Button } from "@/components/ui/button"
+import { Map } from 'lucide-react'
+import { BoardMapDialog } from "./board-map-dialog"
+import { LocationDetails } from "./DepartureDialog"
 
 interface KanbanBoardProps {
   employees: Employees[]
   jobOrders: JobOrderWithTasks[]
+  columns?: Columns
+  onColumnsChange?: (newColumns: Columns) => void
+  depot?: LocationDetails
 }
 
 const SCROLL_SPEED = 15
@@ -44,16 +35,24 @@ const SCROLL_THRESHOLD = 150
 export default function KanbanBoard({
   employees,
   jobOrders,
+  columns: initialColumns,
+  onColumnsChange,
+  depot,
 }: KanbanBoardProps) {
   const [columns, setColumns] = useState<Columns>({})
-  const [ripple, setRipple] = useState("")
   const [isDragging, setIsDragging] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const scrollIntervalRef = useRef<NodeJS.Timeout>()
+  const [selectedEmployee, setSelectedEmployee] = useState<{
+    name: string;
+    jobOrders: JobOrderWithTasks[];
+  } | null>(null)
 
   useEffect(() => {
-    if (jobOrders.length > 0) {
-      const initialColumns: Columns = {
+    if (initialColumns && Object.keys(initialColumns).length > 0) {
+      setColumns(initialColumns)
+    } else if (jobOrders.length > 0) {
+      const newColumns: Columns = {
         jobOrders: {
           id: "jobOrders",
           title: "Job Orders",
@@ -62,24 +61,18 @@ export default function KanbanBoard({
       }
 
       if (employees.length > 0) {
-        const employeeColumns: Columns = employees.reduce((acc, employee) => {
-          acc[employee.id] = {
+        employees.forEach(employee => {
+          newColumns[employee.id] = {
             id: employee.id,
             title: employee.name,
             jobOrders: [],
           }
-          return acc
-        }, {} as Columns)
-
-        setColumns({
-          ...initialColumns,
-          ...employeeColumns,
         })
-      } else {
-        setColumns(initialColumns)
       }
+
+      setColumns(newColumns)
     }
-  }, [employees, jobOrders])
+  }, [employees, jobOrders, initialColumns])
 
   const handleScroll = (e: React.DragEvent<HTMLDivElement>) => {
     if (!isDragging || !containerRef.current) return
@@ -88,12 +81,10 @@ export default function KanbanBoard({
     const { clientX, clientY } = e
     const { left, right } = container.getBoundingClientRect()
     
-    // Clear any existing scroll interval
     if (scrollIntervalRef.current) {
       clearInterval(scrollIntervalRef.current)
     }
 
-    // Horizontal scrolling
     if (clientX < left + SCROLL_THRESHOLD) {
       scrollIntervalRef.current = setInterval(() => {
         container.scrollLeft -= SCROLL_SPEED
@@ -104,7 +95,6 @@ export default function KanbanBoard({
       }, 16)
     }
 
-    // Vertical scrolling for the column content
     const columns = container.getElementsByClassName('column-content')
     for (const column of columns) {
       const rect = column.getBoundingClientRect()
@@ -144,33 +134,53 @@ export default function KanbanBoard({
       return
     }
 
-    setColumns((prevColumns) => {
-      const sourceColumn = prevColumns[source.droppableId]
-      const destColumn = prevColumns[destination.droppableId]
+    const newColumns = {...columns}
+    const sourceColumn = newColumns[source.droppableId]
+    const destColumn = newColumns[destination.droppableId]
 
-      const sourceTasks = Array.from(sourceColumn.jobOrders)
-      const destTasks =
-        source.droppableId === destination.droppableId
-          ? sourceTasks
-          : Array.from(destColumn.jobOrders)
+    const sourceTasks = Array.from(sourceColumn.jobOrders)
+    const destTasks =
+      source.droppableId === destination.droppableId
+        ? sourceTasks
+        : Array.from(destColumn.jobOrders)
 
-      const [removed] = sourceTasks.splice(source.index, 1)
-      destTasks.splice(destination.index, 0, removed)
+    const [removed] = sourceTasks.splice(source.index, 1)
+    destTasks.splice(destination.index, 0, removed)
 
-      return {
-        ...prevColumns,
-        [source.droppableId]: {
-          ...sourceColumn,
-          jobOrders: sourceTasks,
-        },
-        [destination.droppableId]: {
-          ...destColumn,
-          jobOrders: destTasks,
-        },
+    newColumns[source.droppableId] = {
+      ...sourceColumn,
+      jobOrders: sourceTasks,
+    }
+    newColumns[destination.droppableId] = {
+      ...destColumn,
+      jobOrders: destTasks,
+    }
+
+    setColumns(newColumns)
+    // Only notify parent of changes after drag operations
+    onColumnsChange?.(newColumns)
+  }
+
+  const handleMapClick = (employeeName: string, column: Column) => {
+    if (column.jobOrders.length > 0 && depot) {
+      setSelectedEmployee({
+        name: employeeName,
+        jobOrders: column.jobOrders
+      })
+    }
+  }
+
+  const handleJobOrdersChange = (columnId: string, updatedJobOrders: JobOrderWithTasks[]) => {
+    const newColumns = {
+      ...columns,
+      [columnId]: {
+        ...columns[columnId],
+        jobOrders: updatedJobOrders
       }
-    })
-
-    setRipple(destination.droppableId)
+    }
+    
+    setColumns(newColumns)
+    onColumnsChange?.(newColumns)
   }
 
   return (
@@ -189,19 +199,20 @@ export default function KanbanBoard({
               className="flex-shrink-0 w-[300px]"
             >
               <Card className="h-full flex flex-col">
-                <AnimatePresence>
-                  {ripple === column.id && (
-                    <motion.div
-                      className="pointer-events-none absolute inset-0 rounded-lg bg-primary"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: [0, 0.2, 0] }}
-                      transition={{ duration: 0.4, times: [0, 0.1, 1] }}
-                      onAnimationComplete={() => setRipple("")}
-                    />
-                  )}
-                </AnimatePresence>
                 <CardHeader className="flex-shrink-0 border-b py-2">
-                  <h3 className="text-lg font-semibold">{column.title}</h3>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold">{column.title}</h3>
+                    {column.id !== 'jobOrders' && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleMapClick(column.title, column)}
+                        disabled={column.jobOrders.length === 0 || !depot}
+                      >
+                        <Map className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent className="flex-grow overflow-hidden p-0">
                   <Droppable droppableId={column.id}>
@@ -273,6 +284,27 @@ export default function KanbanBoard({
           ))}
         </div>
       </DragDropContext>
+
+      {selectedEmployee && depot && (
+        <BoardMapDialog
+          isOpen={true}
+          onClose={() => setSelectedEmployee(null)}
+          jobOrders={selectedEmployee.jobOrders}
+          depot={depot}
+          employeeName={selectedEmployee.name}
+          column={columns[Object.keys(columns).find(key => 
+            columns[key].title === selectedEmployee.name
+          ) || '']}
+          onJobOrdersChange={(updatedJobOrders: JobOrderWithTasks[]) => {
+            const columnId = Object.keys(columns).find(key => 
+              columns[key].title === selectedEmployee.name
+            )
+            if (columnId) {
+              handleJobOrdersChange(columnId, updatedJobOrders)
+            }
+          }}
+        />
+      )}
     </div>
   )
 }

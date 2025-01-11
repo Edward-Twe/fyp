@@ -14,7 +14,7 @@ export async function createJobOrder(
   if (!user) throw Error("Unauthorized");
 
   try {
-    const { orderNumber, address, city, postCode, state, country, orgId, latitude, longitude, tasks } = jobOrderSchema.parse(values);
+    const { orderNumber, address, city, postCode, state, country, orgId, latitude, longitude, tasks, spaceRequried } = jobOrderSchema.parse(values);
 
     const organization = await prisma.organization.findFirst({
         where: {
@@ -37,6 +37,7 @@ export async function createJobOrder(
         latitude, 
         longitude, 
         orgId,
+        spaceRequried, 
         JobOrderTask: {
           create: tasks.map(task => ({
             quantity: task.quantity,

@@ -102,17 +102,18 @@ enum Status {
 }
 
 model JobOrders {
-  id          String   @id @default(cuid())
-  orderNumber String
-  createdAt   DateTime @default(now())
-  orgId       String
-  address     String
-  city        String
-  postCode    String
-  state       String
-  country     String
-  latitude    Decimal
-  longitude   Decimal
+  id            String   @id @default(cuid())
+  orderNumber   String
+  createdAt     DateTime @default(now())
+  orgId         String
+  address       String
+  city          String
+  postCode      String
+  state         String
+  country       String
+  latitude      Decimal
+  longitude     Decimal
+  spaceRequried Decimal
 
   organization Organization   @relation(fields: [orgId], references: [id], onDelete: Cascade)
   JobOrderTask JobOrderTask[]

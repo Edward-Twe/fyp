@@ -59,7 +59,6 @@ export default function AddressAutocomplete({ form }: AddressAutocompleteProps) 
       <FormLabel>Address</FormLabel>
       <FormControl>
         <Input
-          ref={inputRef}
           {...form.register('address')}
           placeholder="Enter your address"
         />

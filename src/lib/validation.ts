@@ -101,6 +101,7 @@ export const jobOrderSchema = z.object({
   longitude: z.number(),
   orgId: requiredString, 
   tasks: z.array(jobOrderTaskSchema).min(1, "At least one task is required"),
+  spaceRequried: z.number()
 });
 
 export type JobOrderValues = z.infer<typeof jobOrderSchema>;

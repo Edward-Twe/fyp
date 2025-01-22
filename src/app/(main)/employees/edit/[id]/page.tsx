@@ -6,13 +6,13 @@ export const metadata: Metadata = {
   title: "Edit Employee",
 };
 
-export default function EditEmployee({
+export default async function EditEmployee({
   params,
 }: {
   params: { id: string };
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  const { id } = params;
+  const { id } = await params;
 
   if (!id) return (<h1>No ID provided.</h1>)
 

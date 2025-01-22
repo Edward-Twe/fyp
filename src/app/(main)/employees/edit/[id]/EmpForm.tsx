@@ -36,6 +36,7 @@ export default function EmpForm({ id }: { id: string }) {
       name: "",
       email: "",
       area: "",
+      space: 0.0, 
     },
   });
 
@@ -60,6 +61,7 @@ export default function EmpForm({ id }: { id: string }) {
             name: fetchedEmployee.name,
             email: fetchedEmployee.email,
             area: fetchedEmployee.area,
+            space: Number(fetchedEmployee.space), 
           });
           console.log("Employee fetched successfully:");
         }
@@ -72,7 +74,7 @@ export default function EmpForm({ id }: { id: string }) {
     };
 
     getEmployee();
-  }, [id]);
+  }, [id, form]);
 
   if (isLoading) {
     return (<div>Loading...</div>)
@@ -177,6 +179,7 @@ export default function EmpForm({ id }: { id: string }) {
                     type="number"
                       placeholder="Enter space available"
                       {...field}
+                      value={field.value ?? 0}
                     />
                   </FormControl>
                   <FormMessage />

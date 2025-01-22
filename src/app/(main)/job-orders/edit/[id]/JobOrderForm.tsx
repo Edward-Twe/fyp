@@ -29,6 +29,7 @@ import { CardContent, CardFooter } from "@/components/ui/card";
 import { StandaloneSearchBox } from "@react-google-maps/api";
 import { useGoogleMaps } from "@/components/GoogleMapsProvider";
 import { editJobOrder, findJobOrder } from "./action";
+import { useToast } from "@/components/hooks/use-toast";
 
 interface Task {
   id: string;
@@ -47,6 +48,7 @@ export default function JobOrderForm({ id }: { id: string }) {
     const searchBoxRef = useRef<google.maps.places.SearchBox | null>(null);
     const { isLoaded, loadError } = useGoogleMaps();
     const [isLoading, setIsLoading] = useState(true);
+    const { toast } = useToast();
 
     const form = useForm<UpdateJobOrderValues>({
         resolver: zodResolver(updateJobOrderSchema),
@@ -67,7 +69,7 @@ export default function JobOrderForm({ id }: { id: string }) {
       });
     
       useEffect(() => {
-        if (id) {
+        if (!id) {
           setError("No ID provided.");
           setIsLoading(false);
           return;
@@ -201,9 +203,16 @@ export default function JobOrderForm({ id }: { id: string }) {
       try {
         const result = await editJobOrder(values);
         if (result && "error" in result) {
-          setError(result.error);
+          toast({
+            title: "Error",
+            description: `Error updating job order #${values.id}`,
+            variant: "destructive",
+          });
         } else {
-          console.log("Job order updated successfully");
+          toast({
+            title: "Success",
+            description: `Successfully updated job order #${values.id}`,
+          });
         }
       } catch (err) {
         console.error("Error updating job order:", err);
@@ -358,7 +367,7 @@ export default function JobOrderForm({ id }: { id: string }) {
         </CardContent>
         <CardFooter>
           <LoadingButton loading={isPending} type="submit" className="w-full">
-            Create Job Order
+            Edit Job Order
           </LoadingButton>
         </CardFooter>
       </form>

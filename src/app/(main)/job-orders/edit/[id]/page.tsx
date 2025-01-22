@@ -21,7 +21,7 @@ export default function EditJobOrder({
       <Card className="w-full max-w-2xl mx-auto">
         <CardHeader>
           <CardTitle>Edit Job Order</CardTitle>
-          <CardDescription>Fill in the details to edit job order.</CardDescription>
+          <CardDescription>Fill in the details to edit job order. {id}</CardDescription>
         </CardHeader>
         <JobOrderForm id={id} />
       </Card>

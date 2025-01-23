@@ -160,8 +160,3 @@ model Schedules {
 
   @@map("schedules")
 }
-
-// model ScheduledJobOrders {
-//   id String 
-//   jobOrderId String
-// }

@@ -24,6 +24,9 @@ import Link from "next/link";
 import { Tasks } from "@prisma/client";
 import { loadTasks } from "./loadTasks";
 import { useOrganization } from "@/app/contexts/OrganizationContext";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { deleteTask } from "./delete/action";
+import { toast } from "@/components/hooks/use-toast";
 
 export default function TasksPage() {
   // fetch the selected organization
@@ -58,6 +61,24 @@ export default function TasksPage() {
 
     fetchTasks();
   }, [selectedOrg]);
+
+  const handleDeleteTask = async (taskId: string) => {
+    const result = await deleteTask(taskId)
+    if (result.success) {
+      toast({
+        title: "Success",
+        description: result.message,
+      })
+      const updatedTasks = tasks.filter((task) => task.id !== taskId)
+      setTasks(updatedTasks)
+    } else {
+      toast({
+        title: "Error",
+        description: result.message,
+        variant: "destructive",
+      })
+    }
+  }
 
   if (error) {
     return <div>{error}</div>
@@ -116,7 +137,26 @@ export default function TasksPage() {
                         Edit task
                       </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem>Delete task</DropdownMenuItem>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>Delete task</DropdownMenuItem>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete the task and all related
+                            data.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDeleteTask(task.id)}>
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>

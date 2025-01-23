@@ -41,6 +41,7 @@
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
+    "decimal.js": "^10.4.3",
     "framer-motion": "^11.11.10",
     "fyp": "file:",
     "ky": "^1.7.2",

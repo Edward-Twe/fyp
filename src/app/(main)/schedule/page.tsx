@@ -67,6 +67,10 @@ export default function SchedulesPage() {
   if (!selectedOrg)
     return <h1>Please Select or Create an Organization first!</h1>;
 
+  if (error) {
+    <h1>Something went wrong</h1>
+  }
+
   return (
     <div className="container mx-auto py-10">
       <div className="mb-4 flex items-center justify-between">
@@ -111,6 +115,11 @@ export default function SchedulesPage() {
                     <DropdownMenuItem asChild>
                       <Link href={`/schedule/edit/${schedule.id}`}>
                         Edit schedule
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href={`/schedule/edit/${schedule.id}`}>
+                        View schedule
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem>Delete schedule</DropdownMenuItem>

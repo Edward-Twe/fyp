@@ -3,12 +3,12 @@
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { organizationSchema, OrganizationValues } from "@/lib/validation";
+import { revalidatePath } from "next/cache";
 import { isRedirectError } from "next/dist/client/components/redirect";
-import { redirect } from 'next/navigation';
 
 export async function createOrganization(
   values: OrganizationValues,
-): Promise<{ error: string }> {
+): Promise<{ error?: string; success?: boolean }> {
   const { user } = await validateRequest();
 
   if (!user) throw Error("Unauthorized");
@@ -26,7 +26,8 @@ export async function createOrganization(
       },
     });
     
-    return redirect("/");
+    revalidatePath("/");
+    return { success: true };
   } catch (error) {
     if (isRedirectError(error)) throw error;
     console.error(error);

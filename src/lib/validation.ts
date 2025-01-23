@@ -137,3 +137,18 @@ export const scheduleSchema = z.object({
 });
 
 export type ScheduleValues = z.infer<typeof scheduleSchema>;
+
+export const updateScheduleSchema = z.object({
+  id: requiredString, 
+  name: z.string().min(1, "Name is required"),
+  departAddress: z.string().min(1, "Address is required"),
+  departCity: z.string(), 
+  departPostCode: z.string(), 
+  departState: z.string(), 
+  departCountry: z.string(), 
+  departLatitude: z.number(),
+  departLongitude: z.number(),
+  departTime: z.date(),
+});
+
+export type UpdateScheduleValues = z.infer<typeof updateScheduleSchema>;

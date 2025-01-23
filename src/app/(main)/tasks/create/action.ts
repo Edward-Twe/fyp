@@ -3,12 +3,11 @@
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { taskSchema, TaskValues } from "@/lib/validation";
-import { isRedirectError } from "next/dist/client/components/redirect";
-import { redirect } from 'next/navigation';
+import { revalidatePath } from "next/cache";
 
 export async function createTask(
   values: TaskValues,
-): Promise<{ error: string }> {
+): Promise<{ error?: string; success?: boolean }> {
   const { user } = await validateRequest();
 
   if (!user) throw Error("Unauthorized");
@@ -36,9 +35,9 @@ export async function createTask(
       },
     });
 
-    return redirect("/");
+    revalidatePath("/tasks");
+    return { success: true };
   } catch (error) {
-    if (isRedirectError(error)) throw error;
     console.error(error);
     return {
       error: "Something went wrong, Please try again.",

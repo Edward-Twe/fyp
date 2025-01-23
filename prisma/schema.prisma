@@ -122,6 +122,7 @@ model JobOrders {
   status       Status         @default(unscheduled)
   scheduledEmp Employees?     @relation(fields: [employeeId], references: [id], onDelete: SetNull)
   employeeId   String?
+  scheduledOrder Int?
 
   @@map("job_orders")
 }

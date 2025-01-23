@@ -17,6 +17,8 @@ import { CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import LoadingButton from "@/components/Loadingbutton";
 import { useOrganization } from "@/app/contexts/OrganizationContext";
+import { useRouter } from "next/navigation";
+import { useToast } from "@/components/hooks/use-toast";
 
 export default function EmpForm() {
   const [error, setError] = useState<string>();
@@ -24,6 +26,10 @@ export default function EmpForm() {
   const [isPending, startTransition] = useTransition();
 
   const { selectedOrg } = useOrganization();
+
+  const router = useRouter()
+
+  const { toast } = useToast();
 
   const form = useForm<EmployeeValues>({
     resolver: zodResolver(employeeSchema),
@@ -42,11 +48,18 @@ export default function EmpForm() {
     startTransition(async () => {
       try {
         const result = await createEmployee(values);
-        if ("error" in result && result.error) {
-          setError(result.error);
+        if (result && result.error) {
+          toast({
+            title: "Error",
+            description: `Error creating employee`,
+            variant: "destructive",
+          });
         } else {
-          console.log("Employee created successfully", result);
-          // Handle successful creation (e.g., show a success message, redirect)
+          toast({
+            title: "Success",
+            description: `Successfully created employee`,
+          });
+          router.push("/employees");
         }
       } catch (err) {
         console.error("Error creating employee:", err);
@@ -144,31 +157,6 @@ export default function EmpForm() {
             value={selectedOrg.id}
           />
           <div className="space-y-2">
-            {/* <Label htmlFor="logo">employee Logo</Label> */}
-            {/* <div className="flex items-center space-x-4">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                >
-                  <Upload className="mr-2 h-4 w-4" /> Upload Logo
-                </Button>
-                <Input 
-                  id="logo" 
-                  type="file" 
-                  className="hidden" 
-                  onChange={handleLogoChange} 
-                  accept="image/*"
-                />
-                {logoPreview && (
-                  <div className="relative w-16 h-16">
-                    <img 
-                      src={logoPreview} 
-                      alt="Logo preview" 
-                      className="w-full h-full object-cover rounded-md"
-                    />
-                  </div>
-                )}
-              </div> */}
           </div>
         </CardContent>
         <CardFooter>

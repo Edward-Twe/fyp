@@ -16,11 +16,16 @@ import {
 import { CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import LoadingButton from "@/components/Loadingbutton";
+import { useToast } from "@/components/hooks/use-toast";
+import { useRouter } from "next/navigation";
 
 export default function OrgForm() {
   const [error, setError] = useState<string>();
 
   const [isPending, startTransition] = useTransition();
+
+  const { toast } = useToast();
+  const router = useRouter();
 
   const form = useForm<OrganizationValues>({
     resolver: zodResolver(organizationSchema),
@@ -39,11 +44,18 @@ export default function OrgForm() {
     startTransition(async () => {
       try {
         const result = await createOrganization(values);
-        if ('error' in result && result.error) {
-          setError(result.error);
+        if (result && result.error) {
+          toast({
+            title: "Error",
+            description: `Error creating organization`,
+            variant: "destructive",
+          });
         } else {
-          console.log("Organization created successfully", result);
-          // Handle successful creation (e.g., show a success message, redirect)
+          toast({
+            title: "Success",
+            description: `Successfully created organization`,
+          });
+          router.push("/");
         }
       } catch (err) {
         console.error("Error creating organization:", err);

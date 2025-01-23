@@ -3,13 +3,11 @@
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { updateJobOrderSchema, UpdateJobOrderValues } from "@/lib/validation";
-import { isRedirectError } from "next/dist/client/components/redirect";
-import { redirect } from "next/navigation";
 import { revalidatePath } from 'next/cache'
 
 export async function editJobOrder(
   values: UpdateJobOrderValues
-): Promise<{ error: string } | void> {
+): Promise<{ error?: string; success?: boolean }> {
   const { user } = await validateRequest();
 
   if (!user) throw Error("Unauthorized");
@@ -58,10 +56,9 @@ export async function editJobOrder(
       },
     });
 
-    revalidatePath('/job-orders')
-    return redirect("/job-orders");
+    revalidatePath('/job-orders');
+    return { success: true };
   } catch (error) {
-    if (isRedirectError(error)) throw error;
     console.error(error);
     return {
       error: "Something went wrong. Please try again.",

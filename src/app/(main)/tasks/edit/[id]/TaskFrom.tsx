@@ -19,6 +19,8 @@ import LoadingButton from "@/components/Loadingbutton";
 import { useOrganization } from "@/app/contexts/OrganizationContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tasks } from "@prisma/client";
+import { useToast } from "@/components/hooks/use-toast";
+import { useRouter } from "next/navigation";
 
 export default function EditTaskForm({ id }: { id: string }) {
   const [error, setError] = useState<string>();
@@ -26,6 +28,8 @@ export default function EditTaskForm({ id }: { id: string }) {
   const { selectedOrg } = useOrganization();
   const [task, setTask] = useState<Tasks | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
+  const router = useRouter();
 
   const form = useForm<UpdateTaskValues>({
     resolver: zodResolver(updateTaskSchema),
@@ -89,10 +93,17 @@ export default function EditTaskForm({ id }: { id: string }) {
       try {
         const result = await editTask(values);
         if ("error" in result && result.error) {
-          setError(result.error);
+          toast({
+            title: "Error",
+            description: `Error updating task #${values.id}`,
+            variant: "destructive",
+          });
         } else {
-          console.log("Task edited successfully", result);
-          // Handle successful edit (e.g., show a success message, redirect)
+          toast({
+            title: "Success",
+            description: `Successfully updated task #${values.id}`,
+          });
+          router.push("/tasks");
         }
       } catch (err) {
         console.error("Error editing task:", err);

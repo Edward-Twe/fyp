@@ -18,11 +18,15 @@ import { Input } from "@/components/ui/input";
 import LoadingButton from "@/components/Loadingbutton";
 import { useOrganization } from "@/app/contexts/OrganizationContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useRouter } from "next/navigation";
+import { useToast } from "@/components/hooks/use-toast";
 
 export default function TaskForm() {
   const [error, setError] = useState<string>();
   const [isPending, startTransition] = useTransition();
   const { selectedOrg } = useOrganization();
+  const { toast } = useToast();
+  const router = useRouter();
 
   const form = useForm<TaskValues>({
     resolver: zodResolver(taskSchema),
@@ -52,11 +56,18 @@ export default function TaskForm() {
     startTransition(async () => {
       try {
         const result = await createTask(values);
-        if ("error" in result && result.error) {
-          setError(result.error);
+        if (result && result.error) {
+          toast({
+            title: "Error",
+            description: `Error creating task`,
+            variant: "destructive",
+          });
         } else {
-          console.log("Employee created successfully", result);
-          // Handle successful creation (e.g., show a success message, redirect)
+          toast({
+            title: "Success",
+            description: `Successfully created task`,
+          });
+          router.push("/tasks");
         }
       } catch (err) {
         console.error("Error creating employee:", err);

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   Dialog,
   DialogContent,
@@ -14,14 +14,22 @@ interface SaveScheduleDialogProps {
   isOpen: boolean
   onClose: () => void
   onSave: (name: string) => void
+  scheduleName?: string
 }
 
 export function SaveScheduleDialog({
   isOpen,
   onClose,
   onSave,
+  scheduleName = ""
 }: SaveScheduleDialogProps) {
   const [name, setName] = useState("")
+
+  useEffect(() => {
+    if (isOpen) {
+      setName(scheduleName)
+    }
+  }, [isOpen, scheduleName])
 
   const handleSave = () => {
     if (name.trim()) {

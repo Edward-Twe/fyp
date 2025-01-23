@@ -29,6 +29,8 @@ import LoadingButton from "@/components/Loadingbutton";
 import { CardContent, CardFooter } from "@/components/ui/card";
 import { StandaloneSearchBox } from "@react-google-maps/api";
 import { useGoogleMaps } from "@/components/GoogleMapsProvider";
+import { useRouter } from "next/navigation";
+import { useToast } from "@/components/hooks/use-toast";
 
 interface Task {
   id: string;
@@ -46,6 +48,8 @@ export default function JobOrderForm() {
   const addressInputRef = useRef<HTMLInputElement>(null);
   const searchBoxRef = useRef<google.maps.places.SearchBox | null>(null);
   const { isLoaded, loadError } = useGoogleMaps();
+  const { toast } = useToast();
+  const router = useRouter();
 
   const form = useForm<JobOrderValues>({
     resolver: zodResolver(jobOrderSchema),
@@ -168,10 +172,18 @@ export default function JobOrderForm() {
     startTransition(async () => {
       try {
         const result = await createJobOrder(values);
-        if ("error" in result && result.error) {
-          setError(result.error);
+        if (result && result.error) {
+          toast({
+            title: "Error",
+            description: `Error creating job order`,
+            variant: "destructive",
+          });
         } else {
-          console.log("Job order created successfully", result);
+          toast({
+            title: "Success",
+            description: `Successfully created job order`,
+          });
+          router.push("/job-orders");
         }
       } catch (err) {
         console.error("Error creating job order:", err);

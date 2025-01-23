@@ -30,6 +30,7 @@ import { StandaloneSearchBox } from "@react-google-maps/api";
 import { useGoogleMaps } from "@/components/GoogleMapsProvider";
 import { editJobOrder, findJobOrder } from "./action";
 import { useToast } from "@/components/hooks/use-toast";
+import { useRouter } from "next/navigation";
 
 interface Task {
   id: string;
@@ -40,85 +41,86 @@ interface Task {
 }
 
 export default function JobOrderForm({ id }: { id: string }) {
-    const [error, setError] = useState<string>();
-    const [isPending, startTransition] = useTransition();
-    const [availableTasks, setAvailableTasks] = useState<Task[]>([]);
-    const { selectedOrg } = useOrganization();
-    const addressInputRef = useRef<HTMLInputElement>(null);
-    const searchBoxRef = useRef<google.maps.places.SearchBox | null>(null);
-    const { isLoaded, loadError } = useGoogleMaps();
-    const [isLoading, setIsLoading] = useState(true);
-    const { toast } = useToast();
+  const [error, setError] = useState<string>();
+  const [isPending, startTransition] = useTransition();
+  const [availableTasks, setAvailableTasks] = useState<Task[]>([]);
+  const { selectedOrg } = useOrganization();
+  const addressInputRef = useRef<HTMLInputElement>(null);
+  const searchBoxRef = useRef<google.maps.places.SearchBox | null>(null);
+  const { isLoaded, loadError } = useGoogleMaps();
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
+  const router = useRouter();
 
-    const form = useForm<UpdateJobOrderValues>({
-        resolver: zodResolver(updateJobOrderSchema),
-        defaultValues: {
-          id: "", 
-          orderNumber: "",
-          address: "",
-          city: "",
-          postCode: "",
-          state: "",
-          country: "",
-          latitude: 0,
-          longitude: 0,
-          orgId: selectedOrg?.id || "",
-          tasks: [],
-          spaceRequried: 0
-        },
-      });
-    
-      useEffect(() => {
-        if (!id) {
-          setError("No ID provided.");
-          setIsLoading(false);
-          return;
-        }
-    
-        const getJobOrder = async () => {
-          try {
-            const fetchedJobOrder = await findJobOrder(id as string);
-            if (!fetchedJobOrder) {
-              setError("Job order doesn't exist.");
-            } else {
-              form.reset({
-                id: fetchedJobOrder.id,
-                orderNumber: fetchedJobOrder.orderNumber,
-                address: fetchedJobOrder.address,
-                city: fetchedJobOrder.city,
-                postCode: fetchedJobOrder.postCode,
-                state: fetchedJobOrder.state,
-                country: fetchedJobOrder.country,
-                latitude: Number(fetchedJobOrder.latitude),
-                longitude: Number(fetchedJobOrder.longitude),
-                orgId: fetchedJobOrder.orgId,
-                tasks: fetchedJobOrder.JobOrderTask.map(jot => ({
-                  taskId: jot.taskId,
-                  quantity: jot.quantity
-                })),
-                spaceRequried: Number(fetchedJobOrder.spaceRequried)
-              });
-            }
-          } catch (err) {
-            console.error("Error during fetch:", err);
-            setError("Failed to fetch job order.");
-          } finally {
-            setIsLoading(false);
-          }
-        };
-    
-        getJobOrder();
-    
-        if (selectedOrg?.id) {
-          loadTasks(selectedOrg.id).then((tasks) => {
-            if (Array.isArray(tasks)) {
-              setAvailableTasks(tasks);
-            } else {
-              setError("Failed to load tasks");
-            }
+  const form = useForm<UpdateJobOrderValues>({
+    resolver: zodResolver(updateJobOrderSchema),
+    defaultValues: {
+      id: "",
+      orderNumber: "",
+      address: "",
+      city: "",
+      postCode: "",
+      state: "",
+      country: "",
+      latitude: 0,
+      longitude: 0,
+      orgId: selectedOrg?.id || "",
+      tasks: [],
+      spaceRequried: 0,
+    },
+  });
+
+  useEffect(() => {
+    if (!id) {
+      setError("No ID provided.");
+      setIsLoading(false);
+      return;
+    }
+
+    const getJobOrder = async () => {
+      try {
+        const fetchedJobOrder = await findJobOrder(id as string);
+        if (!fetchedJobOrder) {
+          setError("Job order doesn't exist.");
+        } else {
+          form.reset({
+            id: fetchedJobOrder.id,
+            orderNumber: fetchedJobOrder.orderNumber,
+            address: fetchedJobOrder.address,
+            city: fetchedJobOrder.city,
+            postCode: fetchedJobOrder.postCode,
+            state: fetchedJobOrder.state,
+            country: fetchedJobOrder.country,
+            latitude: Number(fetchedJobOrder.latitude),
+            longitude: Number(fetchedJobOrder.longitude),
+            orgId: fetchedJobOrder.orgId,
+            tasks: fetchedJobOrder.JobOrderTask.map((jot) => ({
+              taskId: jot.taskId,
+              quantity: jot.quantity,
+            })),
+            spaceRequried: Number(fetchedJobOrder.spaceRequried),
           });
         }
-      }, [selectedOrg, id, form]);
+      } catch (err) {
+        console.error("Error during fetch:", err);
+        setError("Failed to fetch job order.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    getJobOrder();
+
+    if (selectedOrg?.id) {
+      loadTasks(selectedOrg.id).then((tasks) => {
+        if (Array.isArray(tasks)) {
+          setAvailableTasks(tasks);
+        } else {
+          setError("Failed to load tasks");
+        }
+      });
+    }
+  }, [selectedOrg, id, form]);
 
   const handlePlaceChanged = () => {
     const places = searchBoxRef.current?.getPlaces();
@@ -173,7 +175,7 @@ export default function JobOrderForm({ id }: { id: string }) {
     return form.getValues("tasks").reduce((total, selectedTask) => {
       const task = availableTasks.find((t) => t.id === selectedTask.taskId);
       if (!task) return total;
-      return total + (task.spaceNeeded * selectedTask.quantity);
+      return total + task.spaceNeeded * selectedTask.quantity;
     }, 0);
   };
 
@@ -197,12 +199,12 @@ export default function JobOrderForm({ id }: { id: string }) {
   };
 
   const onSubmit: SubmitHandler<UpdateJobOrderValues> = async (values) => {
-    values.spaceRequried = calculateTotalSpace()
+    values.spaceRequried = calculateTotalSpace();
     setError(undefined);
     startTransition(async () => {
       try {
         const result = await editJobOrder(values);
-        if (result && "error" in result) {
+        if (result && result.error) {
           toast({
             title: "Error",
             description: `Error updating job order #${values.id}`,
@@ -213,6 +215,7 @@ export default function JobOrderForm({ id }: { id: string }) {
             title: "Success",
             description: `Successfully updated job order #${values.id}`,
           });
+          router.push("/job-orders");
         }
       } catch (err) {
         console.error("Error updating job order:", err);

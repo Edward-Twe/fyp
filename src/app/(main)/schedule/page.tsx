@@ -109,7 +109,7 @@ export default function SchedulesPage() {
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
-                      <Link href={`/schedules/edit/${schedule.id}`}>
+                      <Link href={`/schedule/edit/${schedule.id}`}>
                         Edit schedule
                       </Link>
                     </DropdownMenuItem>

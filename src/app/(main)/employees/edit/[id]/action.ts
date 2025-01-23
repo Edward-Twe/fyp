@@ -3,18 +3,17 @@
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { UpdateEmployeeValues, updateEmployeeSchema } from "@/lib/validation";
-import { isRedirectError } from "next/dist/client/components/redirect";
-import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 
 export async function editEmployee(
   values: UpdateEmployeeValues,
-): Promise<{ error: string }> {
+): Promise<{ error?: string; success?: boolean }> {
   const { user } = await validateRequest();
 
   if (!user) throw Error("Unauthorized");
 
   try {
-    const { id, name, email, area } = updateEmployeeSchema.parse(values);
+    const { id, name, email, area, space } = updateEmployeeSchema.parse(values);
 
     // Check if the employee exists
     const employee = await findEmployee(id);
@@ -30,12 +29,13 @@ export async function editEmployee(
         name: name,
         email: email,
         area: area,
+        space: space, 
       },
     });
 
-    return redirect("/");
+    revalidatePath('/employees');
+    return { success: true };
   } catch (error) {
-    if (isRedirectError(error)) throw error;
     console.error(error);
     return {
       error: "Something went wrong, Please try again.",

@@ -10,12 +10,14 @@ import { useOrganization } from "@/app/contexts/OrganizationContext"
 import { loadJobOrders } from "../../job-orders/loadJobOrders"
 import { parseISO, isValid, format } from "date-fns"
 import { Button } from "@/components/ui/button"
-import { optimizeRoutes } from "./AutoSced"
+import { optimizeRoutes } from "../utils/AutoSced"
 import { Location, JobOrderWithTasks, Columns } from "@/app/types/routing"
 import { ErrorAlert } from "@/components/ui/alert-box"
 import { createSchedule } from "./action"
-import { SaveScheduleDialog } from "./save-schedule-dialog"
+import { SaveScheduleDialog } from "../utils/save-schedule-dialog"
 import { ScheduleValues } from "@/lib/validation"
+import { useRouter } from "next/navigation"
+import { useToast } from "@/components/hooks/use-toast"
 
 export default function Schedules() {
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
@@ -28,6 +30,8 @@ export default function Schedules() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [columns, setColumns] = useState<Columns>({})
+  const { toast } = useToast();
+  const router = useRouter();
 
   useEffect(() => {
     async function fetchEmpJob() {
@@ -147,10 +151,18 @@ export default function Schedules() {
     startTransition(async () => {
       try {
         const result = await createSchedule(scheduleData, columns)
-        if ("error" in result && result.error) {
-          setError(result.error)
+        if (result && result.error) {
+          toast({
+            title: "Error",
+            description: `Error creating schedule`,
+            variant: "destructive",
+          });
         } else {
-          console.log("Schedule created successfully", result)
+          toast({
+            title: "Success",
+            description: `Successfully 6creating schedule`,
+          });
+          router.push("/schedule");
         }
       } catch (err) {
         console.error("Error creating schedule:", err)
@@ -158,10 +170,6 @@ export default function Schedules() {
       }
     })
   }
-
-
-  // ... rest of the component remains the same ...
-
 
   if (isLoading) return <div className="p-4">Loading...</div>
 

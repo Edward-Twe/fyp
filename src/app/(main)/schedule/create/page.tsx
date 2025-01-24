@@ -171,6 +171,46 @@ export default function Schedules() {
     })
   }
 
+  const updateColumns = (newSelectedEmployees: Employees[], newSelectedJobOrders: JobOrderWithTasks[]) => {
+    const newColumns: Columns = {
+      jobOrders: {
+        id: "jobOrders",
+        title: "Job Orders",
+        jobOrders: [],
+      },
+    }
+
+    // Create columns for all selected employees
+    newSelectedEmployees.forEach((employee) => {
+      newColumns[employee.id] = {
+        id: employee.id,
+        title: employee.name,
+        jobOrders: [],
+      }
+    })
+
+    // Distribute job orders to their respective columns
+    newSelectedJobOrders.forEach((jobOrder) => {
+      let placed = false
+      for (const columnId in newColumns) {
+        if (columnId !== "jobOrders" && columns[columnId]?.jobOrders.some((jo) => jo.id === jobOrder.id)) {
+          newColumns[columnId].jobOrders.push(jobOrder)
+          placed = true
+          break
+        }
+      }
+      if (!placed) {
+        newColumns.jobOrders.jobOrders.push(jobOrder)
+      }
+    })
+
+    setColumns(newColumns)
+  }
+
+  useEffect(() => {
+    updateColumns(selectedEmployees, selectedJobOrders)
+  }, [selectedEmployees, selectedJobOrders])
+
   if (isLoading) return <div className="p-4">Loading...</div>
 
   return (
@@ -184,7 +224,10 @@ export default function Schedules() {
             selectedItems={selectedEmployees}
             getItemId={(employee) => employee.id}
             getItemLabel={(employee) => `${employee.name}`}
-            onSelectionChange={setSelectedEmployees}
+            onSelectionChange={(newSelectedEmployees) => {
+              setSelectedEmployees(newSelectedEmployees)
+              updateColumns(newSelectedEmployees, selectedJobOrders)
+            }}
           />
           <SelectionDialog
             title="Job Orders"
@@ -193,7 +236,10 @@ export default function Schedules() {
             getItemId={(jobOrder) => jobOrder.id}
             getItemLabel={(jobOrder) => jobOrder.orderNumber}
             getItemDate={(jobOrder) => getValidDateString(jobOrder.createdAt)}
-            onSelectionChange={setSelectedJobOrders}
+            onSelectionChange={(newSelectedJobOrders) => {
+              setSelectedJobOrders(newSelectedJobOrders)
+              updateColumns(selectedEmployees, newSelectedJobOrders)
+            }}
           />
           <DepartureDialog
             departure={departure}

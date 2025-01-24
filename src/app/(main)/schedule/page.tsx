@@ -42,7 +42,6 @@ export default function SchedulesPage() {
       setIsLoading(true);
       try {
         const result = await loadSchedules(selectedOrg.id);
-        console.log(result);
         if ("error" in result) {
           setError(result.error);
         } else {

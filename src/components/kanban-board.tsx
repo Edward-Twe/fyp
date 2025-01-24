@@ -1,25 +1,16 @@
 "use client"
 
-import React, { useEffect, useState, useRef } from "react"
-import {
-  DragDropContext,
-  Droppable,
-  Draggable,
-  DropResult,
-} from "@hello-pangea/dnd"
+import type React from "react"
+import { useEffect, useState, useRef } from "react"
+import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd"
 import { Card, CardHeader, CardContent } from "@/components/ui/card"
-import { Employees } from "@prisma/client"
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "./ui/accordion"
-import { JobOrderWithTasks, Columns, Column } from "@/app/types/routing"
+import type { Employees } from "@prisma/client"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion"
+import type { JobOrderWithTasks, Columns, Column } from "@/app/types/routing"
 import { Button } from "@/components/ui/button"
-import { Map } from 'lucide-react'
+import { Map } from "lucide-react"
 import { BoardMapDialog } from "./board-map-dialog"
-import { LocationDetails } from "./DepartureDialog"
+import type { LocationDetails } from "./DepartureDialog"
 
 interface KanbanBoardProps {
   employees: Employees[]
@@ -44,8 +35,9 @@ export default function KanbanBoard({
   const containerRef = useRef<HTMLDivElement>(null)
   const scrollIntervalRef = useRef<NodeJS.Timeout>()
   const [selectedEmployee, setSelectedEmployee] = useState<{
-    name: string;
-    jobOrders: JobOrderWithTasks[];
+    name: string
+    id: string
+    jobOrders: JobOrderWithTasks[]
   } | null>(null)
 
   useEffect(() => {
@@ -61,7 +53,7 @@ export default function KanbanBoard({
       }
 
       if (employees.length > 0) {
-        employees.forEach(employee => {
+        employees.forEach((employee) => {
           newColumns[employee.id] = {
             id: employee.id,
             title: employee.name,
@@ -80,7 +72,7 @@ export default function KanbanBoard({
     const container = containerRef.current
     const { clientX, clientY } = e
     const { left, right } = container.getBoundingClientRect()
-    
+
     if (scrollIntervalRef.current) {
       clearInterval(scrollIntervalRef.current)
     }
@@ -95,7 +87,7 @@ export default function KanbanBoard({
       }, 16)
     }
 
-    const columns = container.getElementsByClassName('column-content')
+    const columns = container.getElementsByClassName("column-content")
     for (const column of columns) {
       const rect = column.getBoundingClientRect()
       if (clientX >= rect.left && clientX <= rect.right) {
@@ -127,22 +119,16 @@ export default function KanbanBoard({
 
     if (!destination) return
 
-    if (
-      source.droppableId === destination.droppableId &&
-      source.index === destination.index
-    ) {
+    if (source.droppableId === destination.droppableId && source.index === destination.index) {
       return
     }
 
-    const newColumns = {...columns}
+    const newColumns = { ...columns }
     const sourceColumn = newColumns[source.droppableId]
     const destColumn = newColumns[destination.droppableId]
 
     const sourceTasks = Array.from(sourceColumn.jobOrders)
-    const destTasks =
-      source.droppableId === destination.droppableId
-        ? sourceTasks
-        : Array.from(destColumn.jobOrders)
+    const destTasks = source.droppableId === destination.droppableId ? sourceTasks : Array.from(destColumn.jobOrders)
 
     const [removed] = sourceTasks.splice(source.index, 1)
     destTasks.splice(destination.index, 0, removed)
@@ -161,51 +147,36 @@ export default function KanbanBoard({
     onColumnsChange?.(newColumns)
   }
 
-  const handleMapClick = (employeeName: string, column: Column) => {
+  const handleMapClick = (employeeName: string, columnId: string, column: Column) => {
     if (column.jobOrders.length > 0 && depot) {
       setSelectedEmployee({
         name: employeeName,
-        jobOrders: column.jobOrders
+        id: columnId,
+        jobOrders: column.jobOrders,
       })
     }
   }
 
-  const handleJobOrdersChange = (columnId: string, updatedJobOrders: JobOrderWithTasks[]) => {
-    const newColumns = {
-      ...columns,
-      [columnId]: {
-        ...columns[columnId],
-        jobOrders: updatedJobOrders
-      }
-    }
-    
-    setColumns(newColumns)
-    onColumnsChange?.(newColumns)
-  }
-
   return (
-    <div className="flex flex-col h-full w-full overflow-hidden p-4">
+    <div className="flex h-full w-full flex-col overflow-hidden p-4">
       <DragDropContext onDragStart={onDragStart} onDragEnd={onDragEnd}>
-        <div 
+        <div
           ref={containerRef}
-          className="flex gap-4 overflow-x-auto overflow-y-hidden flex-1"
+          className="flex flex-1 gap-4 overflow-x-auto overflow-y-hidden"
           onDragOver={handleScroll}
-          style={{ scrollBehavior: 'smooth' }}
+          style={{ scrollBehavior: "smooth" }}
         >
           {Object.values(columns).map((column) => (
-            <div 
-              key={column.id} 
-              className="flex-shrink-0 w-[300px]"
-            >
-              <Card className="h-full flex flex-col">
+            <div key={column.id} className="w-[300px] flex-shrink-0">
+              <Card className="flex h-full flex-col">
                 <CardHeader className="flex-shrink-0 border-b py-2">
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-semibold">{column.title}</h3>
-                    {column.id !== 'jobOrders' && (
+                    {column.id !== "jobOrders" && (
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleMapClick(column.title, column)}
+                        onClick={() => handleMapClick(column.title, column.id, column)}
                         disabled={column.jobOrders.length === 0 || !depot}
                       >
                         <Map className="h-4 w-4" />
@@ -222,11 +193,7 @@ export default function KanbanBoard({
                         className="column-content h-full overflow-y-auto p-2"
                       >
                         {column.jobOrders.map((order, index) => (
-                          <Draggable
-                            key={order.id}
-                            draggableId={order.id}
-                            index={index}
-                          >
+                          <Draggable key={order.id} draggableId={order.id} index={index}>
                             {(provided) => (
                               <div
                                 ref={provided.innerRef}
@@ -237,32 +204,28 @@ export default function KanbanBoard({
                                 <div key={order.id}>
                                   <Accordion type="single" collapsible>
                                     <AccordionItem value={order.id}>
-                                      <AccordionTrigger className="text-left">
+                                      <div className="flex w-full items-center justify-between">
                                         <div>
-                                          <h4 className="text-sm font-semibold">
-                                            Order #{order.orderNumber}
-                                          </h4>
-                                          <p className="text-xs text-gray-500">
-                                            {order.address}
-                                          </p>
+                                          <h4 className="text-sm font-semibold">Order #{order.orderNumber}</h4>
+                                          <p className="text-xs text-gray-500">{order.address}</p>
                                         </div>
-                                      </AccordionTrigger>
+                                        <AccordionTrigger className="text-right">
+                                          {/* AccordionTrigger content goes here */}
+                                        </AccordionTrigger>
+                                      </div>
                                       <AccordionContent>
                                         <div className="mt-2 space-y-2">
                                           <h5 className="text-xs font-medium">Tasks:</h5>
                                           <ul className="list-inside list-disc text-xs">
-                                            {order.JobOrderTask.map(
-                                              (jobOrderTask) => (
-                                                <li key={jobOrderTask.id}>
-                                                  {jobOrderTask.task.task} - Quantity:{" "}
-                                                  {jobOrderTask.quantity}
-                                                  <span className="ml-2 text-gray-500">
-                                                    ({jobOrderTask.task.requiredTimeValue.toString()}{" "}
-                                                    {jobOrderTask.task.requiredTimeUnit})
-                                                  </span>
-                                                </li>
-                                              )
-                                            )}
+                                            {order.JobOrderTask.map((jobOrderTask) => (
+                                              <li key={jobOrderTask.id}>
+                                                {jobOrderTask.task.task} - Quantity: {jobOrderTask.quantity}
+                                                <span className="ml-2 text-gray-500">
+                                                  ({jobOrderTask.task.requiredTimeValue.toString()}{" "}
+                                                  {jobOrderTask.task.requiredTimeUnit})
+                                                </span>
+                                              </li>
+                                            ))}
                                           </ul>
                                         </div>
                                       </AccordionContent>
@@ -291,16 +254,17 @@ export default function KanbanBoard({
           jobOrders={selectedEmployee.jobOrders}
           depot={depot}
           employeeName={selectedEmployee.name}
-          column={columns[Object.keys(columns).find(key => 
-            columns[key].title === selectedEmployee.name
-          ) || '']}
-          onJobOrdersChange={(updatedJobOrders: JobOrderWithTasks[]) => {
-            const columnId = Object.keys(columns).find(key => 
-              columns[key].title === selectedEmployee.name
-            )
-            if (columnId) {
-              handleJobOrdersChange(columnId, updatedJobOrders)
+          columnId={selectedEmployee.id}
+          onJobOrdersChange={(columnId, updatedJobOrders) => {
+            const newColumns = {
+              ...columns,
+              [columnId]: {
+                ...columns[columnId],
+                jobOrders: updatedJobOrders,
+              },
             }
+            setColumns(newColumns)
+            onColumnsChange?.(newColumns)
           }}
         />
       )}

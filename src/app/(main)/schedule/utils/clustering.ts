@@ -38,6 +38,7 @@ export function kMeansClustering(
     clusters[clusterIndex].totalSpaceRequired += Number(jobOrders[orderIndex].spaceRequried)
   })
 
+  console.log(clusters)
   return clusters
 }
 

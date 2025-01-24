@@ -31,7 +31,7 @@ export async function optimizeRoute(
 
     const data: DirectionsResponse = await response.json();
 
-    console.log(data);
+    //console.log(data);
 
     if (!data.routes?.[0]) {
       throw new Error("No route found");

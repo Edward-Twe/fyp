@@ -56,11 +56,16 @@ export default function JobOrderForm() {
     defaultValues: {
       orderNumber: "",
       address: "",
+      city: "",
+      postCode: "",
+      state: "",
+      country: "",
       latitude: 0,
       longitude: 0,
+      placeId: "", 
       orgId: selectedOrg?.id || "",
       tasks: [],
-      spaceRequried: 0
+      spaceRequried: 0,
     },
   });
 
@@ -74,6 +79,7 @@ export default function JobOrderForm() {
       country: "",
       latitude: 0,
       longitude: 0,
+      placeId: "", 
       orgId: selectedOrg?.id || "",
       tasks: [],
       spaceRequried: 0,
@@ -104,7 +110,7 @@ export default function JobOrderForm() {
           return component ? component.long_name : null;
         };
 
-        // Extract city, postcode, and state
+        // Extract city, postcode, state, and placeid
         const city = getAddressComponent(addressComponents, "locality");
         const postcode = getAddressComponent(addressComponents, "postal_code");
         const state = getAddressComponent(
@@ -112,6 +118,7 @@ export default function JobOrderForm() {
           "administrative_area_level_1",
         );
         const country = getAddressComponent(addressComponents, "country");
+        const placeId = place.place_id as string;
 
         form.setValue("city", city || "");
         form.setValue("postCode", postcode || "");
@@ -120,6 +127,7 @@ export default function JobOrderForm() {
         form.setValue("address", place.formatted_address || "");
         form.setValue("latitude", place.geometry?.location?.lat() || 0);
         form.setValue("longitude", place.geometry?.location?.lng() || 0);
+        form.setValue("placeId", placeId || "");
       }
     }
   };
@@ -166,6 +174,7 @@ export default function JobOrderForm() {
   };
 
   const onSubmit: SubmitHandler<JobOrderValues> = async (values) => {
+    console.log("hi")
     values.spaceRequried = calculateTotalSpace()
     console.log(values)
     setError(undefined);

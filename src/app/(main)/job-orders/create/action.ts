@@ -3,18 +3,18 @@
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { jobOrderSchema, JobOrderValues } from "@/lib/validation";
+import { revalidatePath } from "next/cache";
 import { isRedirectError } from "next/dist/client/components/redirect";
-import { redirect } from 'next/navigation';
 
 export async function createJobOrder(
   values: JobOrderValues,
-): Promise<{ error: string }> {
+): Promise<{ error?: string; success?: boolean }> {
   const { user } = await validateRequest();
 
   if (!user) throw Error("Unauthorized");
 
   try {
-    const { orderNumber, address, city, postCode, state, country, orgId, latitude, longitude, tasks, spaceRequried } = jobOrderSchema.parse(values);
+    const { orderNumber, address, city, postCode, state, country, orgId, latitude, longitude, placeId, tasks, spaceRequried } = jobOrderSchema.parse(values);
 
     const organization = await prisma.organization.findFirst({
         where: {
@@ -36,6 +36,7 @@ export async function createJobOrder(
         country, 
         latitude, 
         longitude, 
+        placeId, 
         orgId,
         spaceRequried, 
         JobOrderTask: {
@@ -52,7 +53,8 @@ export async function createJobOrder(
       }
     });
 
-    return redirect("/job-orders");
+    revalidatePath("/job-orders");
+    return {success: true};
   } catch (error) {
     if (isRedirectError(error)) throw error;
     console.error(error);

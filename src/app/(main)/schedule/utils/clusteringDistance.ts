@@ -19,7 +19,7 @@ function jobOrderToLocation(order: JobOrders): Location {
   return { lat: Number(order.latitude), lng: Number(order.longitude) }
 }
 
-export function kMeansClustering(jobOrders: JobOrders[]): Cluster[] {
+export function kMeansClusteringD(jobOrders: JobOrders[]): Cluster[] {
   const MAX_DISTANCE = 20 // Maximum distance in kilometers
 
   const clusters: Cluster[] = []

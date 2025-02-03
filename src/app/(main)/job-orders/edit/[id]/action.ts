@@ -23,6 +23,7 @@ export async function editJobOrder(
       country, 
       latitude, 
       longitude, 
+      placeId, 
       tasks, 
       spaceRequried 
     } = updateJobOrderSchema.parse(values);
@@ -45,6 +46,7 @@ export async function editJobOrder(
         country,
         latitude,
         longitude,
+        placeId, 
         spaceRequried,
         JobOrderTask: {
           deleteMany: {},

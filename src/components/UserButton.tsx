@@ -20,7 +20,6 @@ import { logout } from "@/app/(auth)/logout/actions";
 import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
 import { useOrganization } from "@/app/contexts/OrganizationContext";
-import { useRouter } from "next/navigation";
 
 interface UserButtonProps {
   className?: string;
@@ -44,7 +43,6 @@ export default function UserButton({ className }: UserButtonProps) {
 
   const { theme, setTheme } = useTheme();
   const { clearSelectedOrg } = useOrganization();
-  const router = useRouter();
 
   async function handleLogout() {
     clearSelectedOrg();

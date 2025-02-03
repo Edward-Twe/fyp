@@ -134,61 +134,71 @@ export function BoardMapDialog({
                 <DragDropContext onDragEnd={handleDragEnd}>
                   <Droppable droppableId={columnId}>
                     {(provided) => (
-                      <div {...provided.droppableProps} ref={provided.innerRef} className="h-full overflow-y-auto p-2">
+                      <div 
+                        {...provided.droppableProps} 
+                        ref={provided.innerRef} 
+                        className="h-full overflow-y-auto p-2"
+                      >
                         {localJobOrders.map((order, index) => (
-                          <Draggable key={order.id} draggableId={order.id} index={index}>
-                            {(provided, snapshot) => (
-                              <div
-                                ref={provided.innerRef}
-                                {...provided.draggableProps}
-                                {...provided.dragHandleProps}
-                                className="mb-2 rounded bg-secondary p-2 shadow"
-                                style={{
-                                  ...provided.draggableProps.style,
-                                  transform: snapshot.isDragging
-                                    ? provided.draggableProps.style?.transform
-                                    : "translate(0px, 0px)",
-                                }}
-                              >
-                                <Accordion type="single" collapsible>
-                                  <AccordionItem value={order.id}>
-                                    <div className="flex w-full items-center justify-between">
-                                      <div className="flex-1">
-                                        <div className="flex items-center justify-between">
-                                          <h4 className="text-sm font-semibold">Order #{order.orderNumber}</h4>
-                                          {travelInfo.legTimes[index] && (
-                                            <span className="text-xs text-muted-foreground">
-                                              Travel: {formatTime(travelInfo.legTimes[index])}
-                                            </span>
-                                          )}
-                                        </div>
-                                        <p className="text-xs text-gray-500">{order.address}</p>
-                                      </div>
-                                      <AccordionTrigger className="text-right">
-                                        {/* You can add additional content or leave it as is */}
-                                      </AccordionTrigger>
-                                    </div>
+                          <Draggable 
+                            key={order.id} 
+                            draggableId={order.id} 
+                            index={index}
+                          >
+                            {(provided, snapshot) => {
+                              const draggableStyle = {
+                                ...provided.draggableProps.style,
+                                transform: snapshot.isDragging ? provided.draggableProps.style?.transform : 'translate(0,0)'
+                              }
 
-                                    <AccordionContent>
-                                      <div className="mt-2 space-y-2">
-                                        <h5 className="text-xs font-medium">Tasks:</h5>
-                                        <ul className="list-inside list-disc text-xs">
-                                          {order.JobOrderTask.map((jobOrderTask) => (
-                                            <li key={jobOrderTask.id}>
-                                              {jobOrderTask.task.task} - Quantity: {jobOrderTask.quantity}
-                                              <span className="ml-2 text-gray-500">
-                                                ({jobOrderTask.task.requiredTimeValue.toString()}{" "}
-                                                {jobOrderTask.task.requiredTimeUnit})
-                                              </span>
-                                            </li>
-                                          ))}
-                                        </ul>
-                                      </div>
-                                    </AccordionContent>
-                                  </AccordionItem>
-                                </Accordion>
-                              </div>
-                            )}
+                              return (
+                                <div
+                                  ref={provided.innerRef}
+                                  {...provided.draggableProps}
+                                  style={draggableStyle}
+                                  className={`mb-2 rounded bg-secondary p-2 shadow transition-shadow ${
+                                    snapshot.isDragging ? 'shadow-lg' : ''
+                                  }`}
+                                >
+                                  <div {...provided.dragHandleProps} className="cursor-grab active:cursor-grabbing">
+                                    <Accordion type="single" collapsible>
+                                      <AccordionItem value={order.id}>
+                                        <div className="flex w-full items-center justify-between">
+                                          <div className="flex-1">
+                                            <div className="flex items-center justify-between">
+                                              <h4 className="text-sm font-semibold">Order #{order.orderNumber}</h4>
+                                              {travelInfo.legTimes[index] && (
+                                                <span className="text-xs text-muted-foreground">
+                                                  Travel: {formatTime(travelInfo.legTimes[index])}
+                                                </span>
+                                              )}
+                                            </div>
+                                            <p className="text-xs text-gray-500">{order.address}</p>
+                                          </div>
+                                          <AccordionTrigger className="text-right" />
+                                        </div>
+                                        <AccordionContent>
+                                          <div className="mt-2 space-y-2">
+                                            <h5 className="text-xs font-medium">Tasks:</h5>
+                                            <ul className="list-inside list-disc text-xs">
+                                              {order.JobOrderTask.map((jobOrderTask) => (
+                                                <li key={jobOrderTask.id}>
+                                                  {jobOrderTask.task.task} - Quantity: {jobOrderTask.quantity}
+                                                  <span className="ml-2 text-gray-500">
+                                                    ({jobOrderTask.task.requiredTimeValue.toString()}{" "}
+                                                    {jobOrderTask.task.requiredTimeUnit})
+                                                  </span>
+                                                </li>
+                                              ))}
+                                            </ul>
+                                          </div>
+                                        </AccordionContent>
+                                      </AccordionItem>
+                                    </Accordion>
+                                  </div>
+                                </div>
+                              )
+                            }}
                           </Draggable>
                         ))}
                         {provided.placeholder}
@@ -211,22 +221,46 @@ export function BoardMapDialog({
           {/* Right side - Map */}
           <div className="relative overflow-hidden rounded-lg border">
             <GoogleMap mapContainerStyle={mapContainerStyle} center={center} zoom={12}>
+              {/* Depot marker */}
               <Marker
                 position={{ lat: depot.latitude, lng: depot.longitude }}
                 icon={{
                   url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png",
                 }}
+                label={{
+                  text: "D",
+                  color: "white",
+                  fontWeight: "bold"
+                }}
                 title="Depot"
               />
+
+              {/* Job order markers with numbers */}
+              {localJobOrders.map((order, index) => (
+                <Marker
+                  key={order.id}
+                  position={{ 
+                    lat: Number(order.latitude), 
+                    lng: Number(order.longitude) 
+                  }}
+                  label={{
+                    text: (index + 1).toString(),
+                    color: "white",
+                    fontWeight: "bold"
+                  }}
+                  title={`Stop ${index + 1}: Order #${order.orderNumber}`}
+                />
+              ))}
 
               {directions && (
                 <DirectionsRenderer
                   directions={directions}
                   options={{
-                    suppressMarkers: false,
-                    markerOptions: {
-                      icon: "http://maps.google.com/mapfiles/ms/icons/red-dot.png",
-                    },
+                    suppressMarkers: true, // Hide default markers
+                    polylineOptions: {
+                      strokeColor: "#4A90E2",
+                      strokeWeight: 4
+                    }
                   }}
                 />
               )}

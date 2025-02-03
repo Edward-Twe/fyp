@@ -72,21 +72,30 @@ function LeftSidebarContent({
   const [organizations, setOrganizations] = React.useState<Organization[]>([]);
   const [error, setError] = React.useState<string | null>(null);
 
+  const fetchOrganizations = async () => {
+    const result = await loadOrganizations();
+    if ("error" in result) {
+      setError(result.error);
+    } else {
+      setOrganizations(result);
+    }
+  };
+
   React.useEffect(() => {
     setCollapsed(isSmallScreen);
   }, [isSmallScreen]);
 
   React.useEffect(() => {
-    const fetchOrganizations = async () => {
-      const result = await loadOrganizations();
-      if ("error" in result) {
-        setError(result.error);
-      } else {
-        setOrganizations(result);
-      }
+    fetchOrganizations();
+  }, []);
+
+  React.useEffect(() => {
+    const handleRouteChange = () => {
+      fetchOrganizations();
     };
 
-    fetchOrganizations();
+    window.addEventListener('popstate', handleRouteChange);
+    return () => window.removeEventListener('popstate', handleRouteChange);
   }, []);
 
   return (

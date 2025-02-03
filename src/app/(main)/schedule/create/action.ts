@@ -25,6 +25,7 @@ export async function createSchedule(
       departCountry,
       departLatitude,
       departLongitude,
+      departPlaceId,
       departTime,
       orgId,
     } = scheduleSchema.parse(values);
@@ -50,6 +51,7 @@ export async function createSchedule(
           departCountry,
           departLatitude,
           departLongitude,
+          departPlaceId,
           orgId,
           departTime,
         },

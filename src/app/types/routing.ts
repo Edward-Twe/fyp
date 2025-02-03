@@ -3,6 +3,7 @@ import { JobOrders, JobOrderTask, Tasks } from "@prisma/client"
 export interface Location {
   lat: number
   lng: number
+  placeId?: string;
 }
 
 export interface Cluster {
@@ -20,7 +21,8 @@ export interface Assignment {
 }
 
 export interface OptimizationResult {
-  assignments: Assignment[]
+  assignments: Assignment[];
+  error?: string;
 }
 
 export type JobOrderWithTasks = JobOrders & {

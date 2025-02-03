@@ -21,7 +21,7 @@ import {
 import { CalendarIcon } from 'lucide-react'
 import { format, set } from "date-fns"
 import { cn } from "@/lib/utils"
-import { Autocomplete } from "@react-google-maps/api"
+import { StandaloneSearchBox } from "@react-google-maps/api"
 import { useGoogleMaps } from "@/components/GoogleMapsProvider"
 
 export interface LocationDetails {
@@ -32,6 +32,7 @@ export interface LocationDetails {
   country: string
   latitude: number
   longitude: number
+  placeId: string
 }
 
 export interface DepartureInfo {
@@ -57,33 +58,54 @@ export function DepartureDialog({ departure, onDepartureChange }: DepartureDialo
       state: "",
       country: "",
       latitude: 0,
-      longitude: 0
+      longitude: 0,
+      placeId: ""
     }
   )
   
   const { isLoaded } = useGoogleMaps()
-  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null)
+  const searchBoxRef = useRef<google.maps.places.SearchBox | null>(null)
+  const addressInputRef = useRef<HTMLInputElement>(null)
+  const [isSelectingPlace, setIsSelectingPlace] = useState(false)
+
+  // Handle input focus
+  const handleInputFocus = () => {
+    setIsSelectingPlace(true)
+  }
+
+  // Handle input blur with delay
+  const handleInputBlur = () => {
+    setTimeout(() => {
+      setIsSelectingPlace(false)
+    }, 200)
+  }
 
   const handlePlaceChanged = () => {
-    const place = autocompleteRef.current?.getPlace()
-    if (place && place.address_components) {
-      const getAddressComponent = (
-        components: google.maps.GeocoderAddressComponent[],
-        type: string
-      ): string => {
-        const component = components.find((c) => c.types.includes(type))
-        return component ? component.long_name : ""
-      }
+    const places = searchBoxRef.current?.getPlaces()
+    if (places && places.length > 0) {
+      const place = places[0]
+      const addressComponents = place.address_components
 
-      setLocation({
-        address: place.formatted_address || "",
-        city: getAddressComponent(place.address_components, "locality"),
-        postCode: getAddressComponent(place.address_components, "postal_code"),
-        state: getAddressComponent(place.address_components, "administrative_area_level_1"),
-        country: getAddressComponent(place.address_components, "country"),
-        latitude: place.geometry?.location?.lat() || 0,
-        longitude: place.geometry?.location?.lng() || 0,
-      })
+      if (addressComponents) {
+        const getAddressComponent = (
+          components: google.maps.GeocoderAddressComponent[],
+          type: string
+        ): string => {
+          const component = components.find((c) => c.types.includes(type))
+          return component ? component.long_name : ""
+        }
+
+        setLocation({
+          address: place.formatted_address || "",
+          city: getAddressComponent(addressComponents, "locality"),
+          postCode: getAddressComponent(addressComponents, "postal_code"),
+          state: getAddressComponent(addressComponents, "administrative_area_level_1"),
+          country: getAddressComponent(addressComponents, "country"),
+          latitude: place.geometry?.location?.lat() || 0,
+          longitude: place.geometry?.location?.lng() || 0,
+          placeId: place.place_id || ""
+        })
+      }
     }
   }
 
@@ -109,15 +131,25 @@ export function DepartureDialog({ departure, onDepartureChange }: DepartureDialo
     setIsCalendarOpen(false)
   }
 
+  const handleOpenChange = (open: boolean) => {
+    if (!open && isSelectingPlace) {
+      return
+    }
+    setIsOpen(open)
+  }
+
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
           <Clock className="h-4 w-4 mr-2" />
           {departure ? "Edit Departure" : "Set Departure"}
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent 
+        className="sm:max-w-[425px]" 
+        style={{ overflow: 'visible' }}
+      >
         <DialogHeader>
           <DialogTitle>Set Departure Details</DialogTitle>
         </DialogHeader>
@@ -166,25 +198,24 @@ export function DepartureDialog({ departure, onDepartureChange }: DepartureDialo
           </div>
           <div className="space-y-2">
             <Label htmlFor="location">Departure Location</Label>
-            <div className="space-y-2">
+            <div className="relative">
               {isLoaded ? (
-                <Autocomplete
-                  onLoad={(autocomplete) => {
-                    autocompleteRef.current = autocomplete
+                <StandaloneSearchBox
+                  onLoad={(ref) => {
+                    searchBoxRef.current = ref
                   }}
-                  onPlaceChanged={handlePlaceChanged}
-                  options={{
-                    fields: ["address_components", "formatted_address", "geometry"],
-                  }}
+                  onPlacesChanged={handlePlaceChanged}
                 >
                   <Input
                     value={location.address}
                     onChange={(e) => setLocation(prev => ({ ...prev, address: e.target.value }))}
                     placeholder="Search for a location"
                     required
-                    className="w-full"
+                    ref={addressInputRef}
+                    onFocus={handleInputFocus}
+                    onBlur={handleInputBlur}
                   />
-                </Autocomplete>
+                </StandaloneSearchBox>
               ) : (
                 <Input disabled placeholder="Loading Google Maps..." />
               )}
@@ -200,6 +231,19 @@ export function DepartureDialog({ departure, onDepartureChange }: DepartureDialo
           </div>
         </form>
       </DialogContent>
+      <style jsx global>{`
+        .pac-container {
+          z-index: 2000 !important;
+          position: fixed !important;
+          pointer-events: auto !important;
+        }
+        .pac-item {
+          cursor: pointer !important;
+        }
+        .pac-item:hover {
+          background-color: #f3f4f6 !important;
+        }
+      `}</style>
     </Dialog>
   )
 }

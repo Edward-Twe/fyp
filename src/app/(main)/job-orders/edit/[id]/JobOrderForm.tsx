@@ -64,6 +64,7 @@ export default function JobOrderForm({ id }: { id: string }) {
       country: "",
       latitude: 0,
       longitude: 0,
+      placeId: "", 
       orgId: selectedOrg?.id || "",
       tasks: [],
       spaceRequried: 0,
@@ -93,6 +94,7 @@ export default function JobOrderForm({ id }: { id: string }) {
             country: fetchedJobOrder.country,
             latitude: Number(fetchedJobOrder.latitude),
             longitude: Number(fetchedJobOrder.longitude),
+            placeId: fetchedJobOrder.placeId, 
             orgId: fetchedJobOrder.orgId,
             tasks: fetchedJobOrder.JobOrderTask.map((jot) => ({
               taskId: jot.taskId,
@@ -145,6 +147,7 @@ export default function JobOrderForm({ id }: { id: string }) {
           "administrative_area_level_1",
         );
         const country = getAddressComponent(addressComponents, "country");
+        const placeId = place.place_id as string;
 
         form.setValue("city", city || "");
         form.setValue("postCode", postcode || "");
@@ -153,6 +156,7 @@ export default function JobOrderForm({ id }: { id: string }) {
         form.setValue("address", place.formatted_address || "");
         form.setValue("latitude", place.geometry?.location?.lat() || 0);
         form.setValue("longitude", place.geometry?.location?.lng() || 0);
+        form.setValue("placeId", placeId || "");
       }
     }
   };

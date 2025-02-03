@@ -99,6 +99,7 @@ export const jobOrderSchema = z.object({
   country: z.string(), 
   latitude: z.number(),
   longitude: z.number(),
+  placeId: requiredString, 
   orgId: requiredString, 
   tasks: z.array(jobOrderTaskSchema).min(1, "At least one task is required"),
   spaceRequried: z.number()
@@ -116,6 +117,7 @@ export const updateJobOrderSchema = z.object({
   country: z.string(), 
   latitude: z.number(),
   longitude: z.number(),
+  placeId: requiredString, 
   orgId: requiredString, 
   tasks: z.array(jobOrderTaskSchema).min(1, "At least one task is required"),
   spaceRequried: z.number()
@@ -132,6 +134,7 @@ export const scheduleSchema = z.object({
   departCountry: z.string(), 
   departLatitude: z.number(),
   departLongitude: z.number(),
+  departPlaceId: requiredString,
   orgId: requiredString, 
   departTime: z.date(),
 });
@@ -148,6 +151,7 @@ export const updateScheduleSchema = z.object({
   departCountry: z.string(), 
   departLatitude: z.number(),
   departLongitude: z.number(),
+  departPlaceId: requiredString,
   departTime: z.date(),
 });
 

@@ -26,6 +26,7 @@ export async function editSchedule(
       departCountry,
       departLatitude,
       departLongitude,
+      departPlaceId,
       departTime,
     } = updateScheduleSchema.parse(values);
 
@@ -54,6 +55,7 @@ export async function editSchedule(
           departCountry,
           departLatitude,
           departLongitude,
+          departPlaceId,
           departTime,
         },
       });

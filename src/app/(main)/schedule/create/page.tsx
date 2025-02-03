@@ -18,6 +18,7 @@ import { SaveScheduleDialog } from "../utils/save-schedule-dialog"
 import { ScheduleValues } from "@/lib/validation"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/components/hooks/use-toast"
+import { LoadingDialog } from "@/components/LoadingDialog"
 
 export default function Schedules() {
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
@@ -32,6 +33,7 @@ export default function Schedules() {
   const [columns, setColumns] = useState<Columns>({})
   const { toast } = useToast();
   const router = useRouter();
+  const [isAutoScheduling, setIsAutoScheduling] = useState(false)
 
   useEffect(() => {
     async function fetchEmpJob() {
@@ -90,41 +92,91 @@ export default function Schedules() {
       return
     }
 
+    setIsAutoScheduling(true)
     try {
       const depot: Location = {
         lat: departure.location.latitude,
-        lng: departure.location.longitude
+        lng: departure.location.longitude,
+        placeId: departure.location.placeId
       }
 
       const schedule = await optimizeRoutes(selectedJobOrders, selectedEmployees, depot)
       
-      // Create new columns state based on optimized assignments
+      // Create new columns state with all job orders in jobOrders column first
       const newColumns: Columns = {
         jobOrders: {
           id: 'jobOrders',
           title: 'Job Orders',
-          jobOrders: []
+          jobOrders: [...selectedJobOrders]
         }
       }
-
-      // Add employee columns and assign job orders based on optimization results
-      schedule.assignments.forEach(assignment => {
-        const employee = selectedEmployees.find(emp => emp.id === assignment.employeeId)
-        if (employee) {
-          newColumns[employee.id] = {
-            id: employee.id,
-            title: employee.name,
-            jobOrders: assignment.jobOrders as JobOrderWithTasks[]
-          }
+      selectedEmployees.forEach(employee => {
+        newColumns[employee.id] = {
+          id: employee.id,
+          title: employee.name,
+          jobOrders: []
         }
       })
 
-      // Update columns state
+      // Only distribute job orders if optimization was successful
+      if (schedule.assignments && schedule.assignments.length > 0 && !schedule.error) {
+        // Clear the jobOrders column as we'll redistribute
+        newColumns.jobOrders.jobOrders = []
+
+        // Add employee columns and assign job orders based on optimization results
+        schedule.assignments.forEach(assignment => {
+          if (assignment.employeeId === 'jobOrders') {
+            newColumns.jobOrders.jobOrders = assignment.jobOrders as JobOrderWithTasks[]
+          } else {
+            const employee = selectedEmployees.find(emp => emp.id === assignment.employeeId)
+            if (employee) {
+              newColumns[employee.id] = {
+                id: employee.id,
+                title: employee.name,
+                jobOrders: assignment.jobOrders as JobOrderWithTasks[]
+              }
+            }
+          }
+        })
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Auto-scheduling failed",
+          description: schedule.error || "Route optimization failed. All job orders remain unassigned."
+        })
+      }
+
       setColumns(newColumns)
       
     } catch (error) {
       console.error('Error in auto-scheduling:', error)
-      setError('Failed to optimize routes')
+      toast({
+        variant: "destructive",
+        title: "Auto-scheduling failed",
+        description: "An error occurred during route optimization. All job orders remain unassigned."
+      })
+      
+      // Set all job orders to jobOrders column and create empty columns for employees
+      const newColumns: Columns = {
+        jobOrders: {
+          id: 'jobOrders',
+          title: 'Job Orders',
+          jobOrders: [...selectedJobOrders]
+        }
+      }
+
+      // Add empty columns for all selected employees
+      selectedEmployees.forEach(employee => {
+        newColumns[employee.id] = {
+          id: employee.id,
+          title: employee.name,
+          jobOrders: []
+        }
+      })
+
+      setColumns(newColumns)
+    } finally {
+      setIsAutoScheduling(false)
     }
   }
 
@@ -143,6 +195,7 @@ export default function Schedules() {
       departCountry: departure.location.country,
       departLatitude: departure.location.latitude,
       departLongitude: departure.location.longitude,
+      departPlaceId: departure.location.placeId,
       orgId: selectedOrg.id,
       departTime: departure.datetime,
     }
@@ -160,7 +213,7 @@ export default function Schedules() {
         } else {
           toast({
             title: "Success",
-            description: `Successfully 6creating schedule`,
+            description: `Successfully created schedule`,
           });
           router.push("/schedule");
         }
@@ -299,6 +352,7 @@ export default function Schedules() {
           />
         )}
       </div>
+      <LoadingDialog isOpen={isAutoScheduling} />
     </div>
   )
 }

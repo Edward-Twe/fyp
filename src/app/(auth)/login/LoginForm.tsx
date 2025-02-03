@@ -16,8 +16,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/PasswordInput";
 import LoadingButton from "@/components/Loadingbutton";
+import { useOrganization } from "@/app/contexts/OrganizationContext"
 
 export default function LoginForm() {
+  const { clearSelectedOrg } = useOrganization()
   // to get the error sent from the backend
   const [error, setError] = useState<string>();
 
@@ -38,7 +40,12 @@ export default function LoginForm() {
     setError(undefined);
     startTransition(async () => {
       const { error } = await login(values);
-      if (error) setError(error);
+      if (!error) {
+        localStorage.clear()
+        clearSelectedOrg()
+      } else {
+        setError(error)
+      }
     });
   }
 

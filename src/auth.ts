@@ -3,6 +3,7 @@ import prisma from "./lib/prisma"
 import { Lucia, Session, User } from "lucia"
 import { cache } from "react";
 import { cookies } from "next/headers";
+import { Cookie } from "lucia";
 
 // to connect to database
 const adapter = new PrismaAdapter(prisma.session, prisma.user);
@@ -50,46 +51,32 @@ interface DatabaseUserAttributes {
 // to validate and store the validated result. so no multiple validation request is required for multiple actions.
 export const validateRequest = cache(
     async(): Promise<
-        { user: User, session: Session } | { user: null, session: null } 
+        { user: User; session: Session; cookies?: Cookie } | 
+        { user: null; session: null; cookies?: Cookie }
     > => {
-            // check if there is a session ID
-            const cookieStore = await cookies()
-            const sessionId = cookieStore.get(lucia.sessionCookieName)?.value ?? null;
+        const cookieStore = await cookies()
+        const sessionId = cookieStore.get(lucia.sessionCookieName)?.value ?? null;
 
-            if (!sessionId) {
-                return {
-                    user: null, 
-                    session: null
-                }
+        if (!sessionId) {
+            return {
+                user: null, 
+                session: null,
+                cookies: undefined
             }
+        }
 
-            // validate the session
-            const result = await lucia.validateSession(sessionId);
+        const result = await lucia.validateSession(sessionId);
 
-            try {
-                if (result.session && result.session.fresh) {
-                    const sessionCookie = lucia.createSessionCookie(result.session.id);
-                    const cookieStore = await cookies()
-                    cookieStore.set(
-                        sessionCookie.name, 
-                        sessionCookie.value, 
-                        sessionCookie.attributes
-                    )
-                }
-
-                if (!result.session) {
-                    const sessionCookie = lucia.createBlankSessionCookie();
-                    const cookieStore = await cookies()
-                    cookieStore.set(
-                        sessionCookie.name, 
-                        sessionCookie.value, 
-                        sessionCookie.attributes
-                    )
-                }
-            } catch (error) {
-                console.error("Error while setting cookie: ", error)
+        // Only set cookies in server actions/route handlers
+        if (result.session?.fresh || !result.session) {
+            return {
+                ...result,
+                cookies: result.session 
+                    ? lucia.createSessionCookie(result.session.id)
+                    : lucia.createBlankSessionCookie()
             }
+        }
 
-            return result
-        },
+        return result
+    }
 );

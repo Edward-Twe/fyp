@@ -2,7 +2,7 @@
 
 import { updateEmployeeSchema, UpdateEmployeeValues } from "@/lib/validation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState, useTransition, useRef } from "react";
 import { SubmitHandler, useForm } from "react-hook-form";
 import { editEmployee, findEmployee } from "./action";
 import {
@@ -20,6 +20,8 @@ import { useOrganization } from "@/app/contexts/OrganizationContext";
 import { Employees } from "@prisma/client";
 import { useToast } from "@/components/hooks/use-toast";
 import { useRouter } from "next/navigation";
+import { StandaloneSearchBox } from "@react-google-maps/api";
+import { useGoogleMaps } from "@/components/GoogleMapsProvider";
 
 export default function EmpForm({ id }: { id: string }) {
   const [error, setError] = useState<string>();
@@ -29,6 +31,9 @@ export default function EmpForm({ id }: { id: string }) {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const router = useRouter();
+  const addressInputRef = useRef<HTMLInputElement>(null);
+  const searchBoxRef = useRef<google.maps.places.SearchBox | null>(null);
+  const { isLoaded, loadError } = useGoogleMaps();
 
   const form = useForm<UpdateEmployeeValues>({
     resolver: zodResolver(updateEmployeeSchema),
@@ -37,6 +42,8 @@ export default function EmpForm({ id }: { id: string }) {
       name: "",
       email: "",
       area: "",
+      areaLat: 0,
+      areaLong: 0,
       space: 0.0,
     },
   });
@@ -62,6 +69,8 @@ export default function EmpForm({ id }: { id: string }) {
             name: fetchedEmployee.name,
             email: fetchedEmployee.email,
             area: fetchedEmployee.area,
+            areaLat: Number(fetchedEmployee.areaLat),
+            areaLong: Number(fetchedEmployee.areaLong),
             space: Number(fetchedEmployee.space),
           });
           console.log("Employee fetched successfully:");
@@ -76,6 +85,16 @@ export default function EmpForm({ id }: { id: string }) {
 
     getEmployee();
   }, [id, form]);
+
+  const handlePlaceChanged = () => {
+    const places = searchBoxRef.current?.getPlaces();
+    if (places && places.length > 0) {
+      const place = places[0];
+      form.setValue("area", place.formatted_address || "");
+      form.setValue("areaLat", place.geometry?.location?.lat() || 0);
+      form.setValue("areaLong", place.geometry?.location?.lng() || 0);
+    }
+  };
 
   if (isLoading) {
     return <div>Loading...</div>;
@@ -168,16 +187,33 @@ export default function EmpForm({ id }: { id: string }) {
                 <FormItem>
                   <FormLabel>Employee Area</FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder="Enter employee area"
-                      {...field}
-                      value={field.value ?? ""}
-                    />
+                    {isLoaded ? (
+                      <StandaloneSearchBox
+                        onLoad={(ref) => {
+                          searchBoxRef.current = ref;
+                        }}
+                        onPlacesChanged={handlePlaceChanged}
+                      >
+                        <Input {...field} ref={addressInputRef} value={field.value ?? ""}/>
+                      </StandaloneSearchBox>
+                    ) : (
+                      <Input
+                        {...field}
+                        disabled
+                        placeholder="Loading Google Maps..."
+                        value={field.value ?? ""}
+                      />
+                    )}
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+            {loadError && (
+            <FormMessage>
+              Failed to load Google Maps. Please try again later.
+            </FormMessage>
+          )}
           </div>
           <div className="space-y-2">
             <FormField

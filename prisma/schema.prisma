@@ -66,6 +66,8 @@ model Employees {
   name         String
   email        String?
   area         String?
+  areaLat      Decimal?
+  areaLong     Decimal?
   space        Decimal
   orgId        String
   userId       String?

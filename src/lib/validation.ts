@@ -44,6 +44,8 @@ export const employeeSchema = z.object({
   ),
   space: z.coerce.number().min(0), 
   area: z.string().nullable().optional(), 
+  areaLat: z.number(), 
+  areaLong: z.number(), 
   orgId: requiredString
 });
 
@@ -58,6 +60,8 @@ export const updateEmployeeSchema = z.object({
   ),
   space: z.coerce.number().min(0), 
   area: z.string().nullable().optional(), 
+  areaLat: z.number(), 
+  areaLong: z.number(), 
   orgId: requiredString
 });
 

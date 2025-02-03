@@ -13,7 +13,7 @@ export async function createEmployee(
   if (!user) throw Error("Unauthorized");
 
   try {
-    const { name, email, area, orgId, space } = employeeSchema.parse(values);
+    const { name, email, area, orgId, space, areaLat, areaLong } = employeeSchema.parse(values);
 
     const organization = await prisma.organization.findFirst({
         where: {
@@ -31,7 +31,9 @@ export async function createEmployee(
         email: email,
         area: area, 
         orgId: orgId, 
-        space: space
+        space: space, 
+        areaLat: areaLat, 
+        areaLong: areaLong
       },
     });
 

@@ -13,7 +13,7 @@ export async function editEmployee(
   if (!user) throw Error("Unauthorized");
 
   try {
-    const { id, name, email, area, space } = updateEmployeeSchema.parse(values);
+    const { id, name, email, area, space, areaLat, areaLong } = updateEmployeeSchema.parse(values);
 
     // Check if the employee exists
     const employee = await findEmployee(id);
@@ -30,6 +30,8 @@ export async function editEmployee(
         email: email,
         area: area,
         space: space, 
+        areaLat: areaLat,
+        areaLong: areaLong,
       },
     });
 

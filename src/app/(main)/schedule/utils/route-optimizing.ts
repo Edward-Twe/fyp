@@ -30,10 +30,17 @@ export async function optimizeRoute(
     // console.log("Waypoints:", waypoints);
     // console.log("depot: " + depot.placeId);
 
+    // Find the furthest location from the depot
+    const furthestLocation = locations.reduce((furthest, current) => {
+      const furthestDistance = calculateDistance(depot, furthest);
+      const currentDistance = calculateDistance(depot, current);
+      return currentDistance > furthestDistance ? current : furthest;
+    }, locations[0]);
+
     const response = await fetch(
       `https://maps.googleapis.com/maps/api/directions/json?` +
         `origin=place_id:${depot.placeId}&` +
-        `destination=place_id:${depot.placeId}&` +
+        `destination=place_id:${furthestLocation.placeId}&` +
         `waypoints=optimize:true|${waypoints}&` +
         `key=${process.env.GOOGLE_MAPS_API_KEY}`
     );
@@ -80,4 +87,12 @@ export async function optimizeRoute(
       error: "Failed to optimize route" 
     };
   }
+}
+
+// Helper function to calculate distance between two locations
+function calculateDistance(loc1: Location, loc2: Location): number {
+  // Implement the distance calculation logic here
+  return Math.sqrt(
+    Math.pow(loc2.lat - loc1.lat, 2) + Math.pow(loc2.lng - loc1.lng, 2)
+  );
 }

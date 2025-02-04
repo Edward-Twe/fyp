@@ -18,6 +18,7 @@ export interface Assignment {
   jobOrders: JobOrders[]
   route: Location[]
   totalDistance: number
+  centroid: Location
 }
 
 export interface OptimizationResult {

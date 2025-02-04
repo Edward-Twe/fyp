@@ -24,6 +24,19 @@ import Link from "next/link";
 import { Schedules } from "@prisma/client";
 import { loadSchedules } from "./loadSchedules";
 import { useOrganization } from "@/app/contexts/OrganizationContext";
+import { useToast } from "@/components/hooks/use-toast";
+import { deleteSchedule } from "./delete/action";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export default function SchedulesPage() {
   // fetch the selected organization
@@ -31,6 +44,7 @@ export default function SchedulesPage() {
   const [schedules, setSchedules] = useState<Schedules[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     async function fetchSchedules() {
@@ -59,6 +73,25 @@ export default function SchedulesPage() {
     fetchSchedules();
   }, [selectedOrg]);
 
+  const handleDeleteSchedule = async (scheduleId: string) => {
+    const result = await deleteSchedule(scheduleId);
+    if (result.success) {
+      toast({
+        title: "Success",
+        description: result.message,
+      });
+      // Refresh the schedules list
+      const updatedSchedules = schedules.filter((s) => s.id !== scheduleId);
+      setSchedules(updatedSchedules);
+    } else {
+      toast({
+        title: "Error",
+        description: result.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   if (isLoading) {
     return <div>Loading...</div>;
   }
@@ -67,7 +100,7 @@ export default function SchedulesPage() {
     return <h1>Please Select or Create an Organization first!</h1>;
 
   if (error) {
-    <h1>Something went wrong</h1>
+    return <h1>Something went wrong</h1>;
   }
 
   return (
@@ -121,7 +154,36 @@ export default function SchedulesPage() {
                         View schedule
                       </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem>Delete schedule</DropdownMenuItem>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <DropdownMenuItem 
+                          onSelect={(e) => e.preventDefault()}
+                          className="text-red-600"
+                        >
+                          Delete schedule
+                        </DropdownMenuItem>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>
+                            Are you absolutely sure?
+                          </AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This action cannot be undone. This will permanently
+                            delete the schedule and all related data.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDeleteSchedule(schedule.id)}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>

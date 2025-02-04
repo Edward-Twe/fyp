@@ -208,7 +208,7 @@ export async function optimizeRoutes(
     const unassignedOrders = assignments.find((a) => a.employeeId === "jobOrders")!.jobOrders;
     unassignedOrders.forEach((order) => {
       let closestAssignment: Assignment | null = null;
-      let minDistance = 30; // 30 km
+      let minDistance = maxDistance + 10;
 
       assignments.forEach((assignment) => {
         if (assignment.employeeId !== "jobOrders") {

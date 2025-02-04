@@ -14,6 +14,7 @@ import { Plus } from 'lucide-react'
 import { DateRangePicker } from "./DateRangePicker"
 import { DateRange } from "react-day-picker"
 import { isWithinInterval, parseISO } from "date-fns"
+import { Status } from "@prisma/client"
 
 interface SelectionDialogProps<T> {
   title: string
@@ -22,6 +23,7 @@ interface SelectionDialogProps<T> {
   getItemId: (item: T) => string | number
   getItemLabel: (item: T) => string
   getItemDate?: (item: T) => string
+  getItemStatus?: (item: T) => Status
   onSelectionChange: (selectedItems: T[]) => void
 }
 
@@ -32,11 +34,13 @@ export function SelectionDialog<T>({
   getItemId,
   getItemLabel,
   getItemDate,
+  getItemStatus,
   onSelectionChange,
 }: SelectionDialogProps<T>) {
   const [isOpen, setIsOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined)
+  const [showOnlyUnscheduled, setShowOnlyUnscheduled] = useState(false)
   const [filteredItems, setFilteredItems] = useState(items)
 
   useEffect(() => {
@@ -58,8 +62,12 @@ export function SelectionDialog<T>({
       })
     }
 
+    if (showOnlyUnscheduled && getItemStatus) {
+      filtered = filtered.filter((item) => getItemStatus(item) === "unscheduled")
+    }
+
     setFilteredItems(filtered)
-  }, [items, searchQuery, dateRange, getItemLabel, getItemDate])
+  }, [items, searchQuery, dateRange, getItemLabel, getItemDate, showOnlyUnscheduled, getItemStatus])
 
   const toggleItem = (item: T) => {
     const itemId = getItemId(item)
@@ -124,6 +132,21 @@ export function SelectionDialog<T>({
               date={dateRange}
               onDateChange={setDateRange}
             />
+          )}
+          {getItemStatus && (
+            <div className="flex items-center space-x-2 py-2">
+              <Checkbox
+                id="show-unscheduled"
+                checked={showOnlyUnscheduled}
+                onCheckedChange={(checked) => setShowOnlyUnscheduled(checked as boolean)}
+              />
+              <label
+                htmlFor="show-unscheduled"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Show only unscheduled orders
+              </label>
+            </div>
           )}
           <div className="flex items-center space-x-2 py-2">
             <Checkbox

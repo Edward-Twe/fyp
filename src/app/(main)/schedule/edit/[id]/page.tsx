@@ -41,6 +41,7 @@ export default function SchedulesPage() {
   const [isDistanceDialogOpen, setIsDistanceDialogOpen] = useState(false)
   const [maxDistance, setMaxDistance] = useState<number>(0)
   const [tempDistance, setTempDistance] = useState<string>('')
+  const [isSaving, setIsSaving] = useState(false)
 
   useEffect(() => {
     async function fetchEmpJob() {
@@ -274,8 +275,8 @@ export default function SchedulesPage() {
       departPlaceId: departure.location.placeId,
     }
 
-
     setError(null)
+    setIsSaving(true)
     startTransition(async () => {
       try {
         const result = await editSchedule(scheduleData, columns)
@@ -295,6 +296,8 @@ export default function SchedulesPage() {
       } catch (err) {
         console.error("Error creating schedule:", err)
         setError("An unexpected error occurred. Please try again.")
+      } finally {
+        setIsSaving(false)
       }
     })
   }
@@ -436,7 +439,7 @@ export default function SchedulesPage() {
         )}
       </div>
 
-      <LoadingDialog isOpen={isAutoScheduling} message="Loading..." />
+      <LoadingDialog isOpen={isAutoScheduling || isSaving} message="Loading..." />
       <DistanceDialog 
         isOpen={isDistanceDialogOpen}
         onOpenChange={setIsDistanceDialogOpen}

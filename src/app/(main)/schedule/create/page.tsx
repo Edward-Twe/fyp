@@ -90,7 +90,7 @@ export default function Schedules() {
     }
   };
 
-  async function autoSchedule() {
+  async function autoSchedule(distance?: number) {
     if (!departure || selectedEmployees.length === 0 || selectedJobOrders.length === 0) {
       setError("Please select departure location, employees, and job orders")
       return
@@ -104,8 +104,11 @@ export default function Schedules() {
         placeId: departure.location.placeId
       }
 
-      const schedule = await optimizeRoutes(selectedJobOrders, selectedEmployees, depot, maxDistance)
+      const distanceToUse = distance ?? maxDistance
+
+      const schedule = await optimizeRoutes(selectedJobOrders, selectedEmployees, depot, distanceToUse)
       
+
       // Create new columns state with all job orders in jobOrders column first
       const newColumns: Columns = {
         jobOrders: {
@@ -273,7 +276,7 @@ export default function Schedules() {
     if (distance > 0) {
       setMaxDistance(distance);
       setIsDistanceDialogOpen(false);
-      autoSchedule();
+      autoSchedule(distance);
     } else {
       setError("Please enter a valid number greater than 0");
     }
@@ -304,6 +307,7 @@ export default function Schedules() {
             getItemId={(jobOrder) => jobOrder.id}
             getItemLabel={(jobOrder) => jobOrder.orderNumber}
             getItemDate={(jobOrder) => getValidDateString(jobOrder.createdAt)}
+            getItemStatus={(jobOrder) => jobOrder.status}
             onSelectionChange={(newSelectedJobOrders) => {
               setSelectedJobOrders(newSelectedJobOrders)
               updateColumns(selectedEmployees, newSelectedJobOrders)

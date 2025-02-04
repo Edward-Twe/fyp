@@ -2,14 +2,22 @@
 
 import Link from 'next/link'
 import { motion } from 'framer-motion'
+import Image from 'next/image'
+import createOrg from '@/assets/create-org.jpeg'
+import schedule from '@/assets/schedule.jpeg'
+import tasks from '@/assets/tasks.jpeg'
+import employees from '@/assets/employees.jpeg'
+import products from '@/assets/products.jpeg'
+import reports from '@/assets/reports.jpeg'
+
 
 const boxes = [
-  { title: 'Create Organization', href: '/organizations', color: 'bg-blue-500' },
-  { title: 'Schedule', href: '/schedule', color: 'bg-green-500' },
-  { title: 'Tasks', href: '/tasks', color: 'bg-yellow-500' },
-  { title: 'Employees', href: '/employees', color: 'bg-red-500' },
-  { title: 'Products', href: '/products', color: 'bg-purple-500' },
-  { title: 'Reports', href: '/reports', color: 'bg-indigo-500' },
+  { title: 'Create Organization', href: '/organizations', color: 'bg-blue-500', image: createOrg },
+  { title: 'Schedule', href: '/schedule', color: 'bg-green-500', image: schedule },
+  { title: 'Tasks', href: '/tasks', color: 'bg-yellow-500', image: tasks },
+  { title: 'Employees', href: '/employees', color: 'bg-red-500', image: employees },
+  { title: 'Products', href: '/products', color: 'bg-purple-500', image: products },
+  { title: 'Reports', href: '/reports', color: 'bg-indigo-500', image: reports },
 ]
 
 export default function Dashboard() {
@@ -25,10 +33,16 @@ export default function Dashboard() {
               whileHover={{ scale: 1.05 }}
               transition={{ type: 'spring', stiffness: 300 }}
             >
-              <h2 className="text-3xl font-bold text-white mb-4">{box.title}</h2>
-              <p className="text-white text-opacity-80">Click to view {box.title.toLowerCase()} details</p>
-              {/* Placeholder for background image */}
-              <div className="absolute inset-0 bg-cover bg-center z-0 opacity-30" style={{backgroundImage: `url('/placeholder-${box.title.toLowerCase()}.jpg')`}} />
+              <h2 className="text-3xl font-bold text-white mb-4 relative z-10">{box.title}</h2>
+              <p className="text-white text-opacity-80 relative z-10">Click to view {box.title.toLowerCase()} details</p>
+              {box.image && (
+                <Image
+                  src={box.image}
+                  alt={box.title}
+                  fill
+                  className="object-cover opacity-30 z-0"
+                />
+              )}
             </motion.div>
           </Link>
         ))}

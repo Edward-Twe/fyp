@@ -6,15 +6,16 @@ export const metadata: Metadata = {
   title: "Edit Employee",
 };
 
+type Params = Promise<{ id: string }>;
+
 interface PageProps {
-  params: {
-    id: string
-  }
-  searchParams: { [key: string]: string | string[] | undefined }
+  params: Params
 }
 
-export default function EditEmployeePage({ params }: PageProps) {
-  const { id } = params;
+
+export default async function EditEmployeePage({ params }: PageProps) {
+  const { id } = await params;
+
 
   if (!id) return (<h1>No ID provided.</h1>)
 

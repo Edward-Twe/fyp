@@ -1,24 +1,30 @@
 import { Metadata } from "next";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import TaskForm from "./TaskFrom";
 
 export const metadata: Metadata = {
   title: "Edit Task",
 };
 
-export default function EditTask({
-  params,
-}: {
-  params: { id: string };
-  searchParams: { [key: string]: string | string[] | undefined };
-}) {
-  const { id } = params;
+type Params = Promise<{ id: string }>;
 
-  if (!id) return (<h1>No ID provided.</h1>)
+interface PageProps {
+  params: Params;
+}
+
+export default async function EditTask({ params }: PageProps) {
+  const { id } = await params;
+
+  if (!id) return <h1>No ID provided.</h1>;
 
   return (
     <div className="container mx-auto py-10">
-      <Card className="w-full max-w-2xl mx-auto">
+      <Card className="mx-auto w-full max-w-2xl">
         <CardHeader>
           <CardTitle>Edit Task</CardTitle>
           <CardDescription>Fill in the details to edit task.</CardDescription>
@@ -26,6 +32,5 @@ export default function EditTask({
         <TaskForm id={id} />
       </Card>
     </div>
-  )
+  );
 }
-

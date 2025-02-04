@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import prisma from '@/lib/prisma'
 import { validateRequest } from '@/auth'
+import { Status } from '@prisma/client'
 
 export async function deleteSchedule(scheduleId: string) {
   try {
@@ -11,15 +12,35 @@ export async function deleteSchedule(scheduleId: string) {
       return { success: false, message: "Unauthorized" }
     }
 
-    await prisma.schedules.delete({
-      where: { id: scheduleId }
+    await prisma.$transaction(async (tx) => {
+      // 1. First, get all job orders associated with this schedule
+      const jobOrders = await tx.jobOrders.findMany({
+        where: { schedulesId: scheduleId }
+      })
+
+      // 2. Update job orders status to unscheduled and remove schedule reference
+      if (jobOrders.length > 0) {
+        await tx.jobOrders.updateMany({
+          where: { schedulesId: scheduleId },
+          data: {
+            status: Status.unscheduled,
+            schedulesId: null,
+            employeeId: null,
+            scheduledOrder: null
+          }
+        })
+      }
+
+      // 4. Finally delete the schedule
+      await tx.schedules.delete({
+        where: { id: scheduleId }
+      })
     })
 
     try {
       revalidatePath('/schedule')
     } catch (revalidateError) {
       console.error('Revalidation error:', revalidateError)
-      // Continue execution even if revalidation fails
     }
 
     return { success: true, message: 'Schedule deleted successfully' }

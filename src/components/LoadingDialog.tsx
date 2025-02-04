@@ -10,9 +10,10 @@ import {
   
   interface LoadingDialogProps {
     isOpen: boolean;
+    message: string;
   }
   
-  export function LoadingDialog({ isOpen }: LoadingDialogProps) {
+  export function LoadingDialog({ isOpen, message }: LoadingDialogProps) {
     return (
       <Dialog open={isOpen}>
         <DialogContent className="sm:max-w-[425px] flex items-center justify-center min-h-[150px]">
@@ -23,7 +24,7 @@ import {
           </DialogHeader>
           <div className="flex flex-col items-center gap-4">
             <Loader2 className="h-8 w-8 animate-spin" />
-            <p className="text-sm text-muted-foreground">Optimizing routes...</p>
+            <p className="text-sm text-muted-foreground">{message}</p>
           </div>
         </DialogContent>
       </Dialog>

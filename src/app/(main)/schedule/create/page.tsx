@@ -19,6 +19,7 @@ import { ScheduleValues } from "@/lib/validation"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/components/hooks/use-toast"
 import { LoadingDialog } from "@/components/LoadingDialog"
+import { DistanceDialog } from "../utils/auto-sched-dialog"
 
 export default function Schedules() {
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
@@ -34,6 +35,9 @@ export default function Schedules() {
   const { toast } = useToast();
   const router = useRouter();
   const [isAutoScheduling, setIsAutoScheduling] = useState(false)
+  const [isDistanceDialogOpen, setIsDistanceDialogOpen] = useState(false);
+  const [maxDistance, setMaxDistance] = useState<number>(0);
+  const [tempDistance, setTempDistance] = useState<string>('');
 
   useEffect(() => {
     async function fetchEmpJob() {
@@ -100,7 +104,7 @@ export default function Schedules() {
         placeId: departure.location.placeId
       }
 
-      const schedule = await optimizeRoutes(selectedJobOrders, selectedEmployees, depot)
+      const schedule = await optimizeRoutes(selectedJobOrders, selectedEmployees, depot, maxDistance)
       
       // Create new columns state with all job orders in jobOrders column first
       const newColumns: Columns = {
@@ -264,6 +268,17 @@ export default function Schedules() {
     updateColumns(selectedEmployees, selectedJobOrders)
   }, [selectedEmployees, selectedJobOrders])
 
+  const handleConfirm = () => {
+    const distance = Number(tempDistance);
+    if (distance > 0) {
+      setMaxDistance(distance);
+      setIsDistanceDialogOpen(false);
+      autoSchedule();
+    } else {
+      setError("Please enter a valid number greater than 0");
+    }
+  };
+
   if (isLoading) return <div className="p-4">Loading...</div>
 
   return (
@@ -298,7 +313,14 @@ export default function Schedules() {
             departure={departure}
             onDepartureChange={setDeparture}
           />
-          <Button size="sm" variant="outline" onClick={autoSchedule}>
+          <Button 
+            size="sm" 
+            variant="outline" 
+            onClick={() => {
+              setTempDistance(maxDistance.toString());
+              setIsDistanceDialogOpen(true);
+            }}
+          >
             AutoSched
           </Button>
           <Button 
@@ -352,8 +374,16 @@ export default function Schedules() {
           />
         )}
       </div>
-      <LoadingDialog isOpen={isAutoScheduling} />
+      <LoadingDialog isOpen={isAutoScheduling} message="Loading..." />
+      <DistanceDialog 
+        isOpen={isDistanceDialogOpen}
+        onOpenChange={setIsDistanceDialogOpen}
+        tempDistance={tempDistance}
+        onTempDistanceChange={setTempDistance}
+        onConfirm={handleConfirm}
+      />
     </div>
+
   )
 }
 

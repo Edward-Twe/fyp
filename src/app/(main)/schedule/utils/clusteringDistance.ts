@@ -19,9 +19,7 @@ function jobOrderToLocation(order: JobOrders): Location {
   return { lat: Number(order.latitude), lng: Number(order.longitude) }
 }
 
-export function kMeansClusteringD(jobOrders: JobOrders[]): Cluster[] {
-  const MAX_DISTANCE = 20 // Maximum distance in kilometers
-
+export function kMeansClusteringD(jobOrders: JobOrders[], maxDistance: number): Cluster[] {
   const clusters: Cluster[] = []
   let clusterIndex = 0
 
@@ -30,7 +28,7 @@ export function kMeansClusteringD(jobOrders: JobOrders[]): Cluster[] {
     let assigned = false
 
     for (const cluster of clusters) {
-      if (calculateDistance(orderLocation, cluster.centroid) <= MAX_DISTANCE) {
+      if (calculateDistance(orderLocation, cluster.centroid) <= maxDistance) {
         cluster.jobOrders.push(order)
         cluster.totalSpaceRequired += Number(order.spaceRequried)
         assigned = true

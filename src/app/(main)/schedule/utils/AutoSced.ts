@@ -80,11 +80,12 @@ function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: numbe
 export async function optimizeRoutes(
   jobOrders: JobOrders[],
   employees: Employees[],
-  depot: Location
+  depot: Location,
+  maxDistance: number
 ): Promise<OptimizationResult> {
   try {
-    // 1. Cluster job orders based on number of employees
-    const clusters = kMeansClusteringD(jobOrders)
+    // 1. Cluster job orders based on number of employees and maxDistance
+    const clusters = kMeansClusteringD(jobOrders, maxDistance)
 
     // 2. Optimize route for each cluster
     const optimizedClusters = await Promise.all(
@@ -140,7 +141,7 @@ export async function optimizeRoutes(
     while (optimizedClusters.length < employeesWithCapacity.length) {
       
       optimizedClusters.sort((a, b) => b.totalSpaceRequired - a.totalSpaceRequired)
-      console.log(optimizedClusters);
+      // console.log(optimizedClusters);
       const largestCluster = optimizedClusters.shift()
       if (!largestCluster) {
         break
@@ -148,7 +149,7 @@ export async function optimizeRoutes(
       const splitClusters = splitCluster(largestCluster)
       optimizedClusters.push(...splitClusters)
     }
-    console.log("Clusters after splitting:", optimizedClusters);
+    // console.log("Clusters after splitting:", optimizedClusters);
 
     // 6. Initialize assignments
     const assignments: Assignment[] = employeesWithCapacity.map(employee => ({
@@ -169,28 +170,39 @@ export async function optimizeRoutes(
       centroid: { lat: 0, lng: 0 }
     })
 
-
+    console.log(employeesWithCapacity)
     // 7. Assign clusters to employees
-    optimizedClusters.forEach((cluster, index) => {
-      const employee = employeesWithCapacity[index]
-      const assignment = assignments.find((a) => a.employeeId === employee.id)!
+    optimizedClusters.forEach((cluster) => {
+      // Find employee with most remaining space instead of using index
+      const employee = employeesWithCapacity
+        .filter(emp => emp.remainingSpace >= cluster.totalSpaceRequired)
+        .sort((a, b) => b.remainingSpace - a.remainingSpace)[0];
+
+      if (!employee) {
+        // If no employee has enough space, add to unassigned
+        assignments
+          .find((a) => a.employeeId === "jobOrders")!
+          .jobOrders.push(...cluster.jobOrders);
+        return;
+      }
+
+      const assignment = assignments.find((a) => a.employeeId === employee.id)!;
 
       if (cluster.totalSpaceRequired <= employee.remainingSpace) {
-        assignment.jobOrders.push(...cluster.jobOrders)
-        assignment.centroid = cluster.centroid
-        employee.remainingSpace -= cluster.totalSpaceRequired
+        assignment.jobOrders.push(...cluster.jobOrders);
+        assignment.centroid = cluster.centroid;
+        employee.remainingSpace -= cluster.totalSpaceRequired;
       } else {
         // Remove job orders from the end until the cluster fits
-
         while (cluster.totalSpaceRequired > employee.remainingSpace && cluster.jobOrders.length > 0) {
-          const removedOrder = cluster.jobOrders.pop()!
-          cluster.totalSpaceRequired -= Number(removedOrder.spaceRequried)
-          assignments.find((a) => a.employeeId === "jobOrders")!.jobOrders.push(removedOrder)
+          const removedOrder = cluster.jobOrders.pop()!;
+          cluster.totalSpaceRequired -= Number(removedOrder.spaceRequried);
+          assignments.find((a) => a.employeeId === "jobOrders")!.jobOrders.push(removedOrder);
         }
-        assignment.jobOrders.push(...cluster.jobOrders)
-        employee.remainingSpace -= cluster.totalSpaceRequired
+        assignment.jobOrders.push(...cluster.jobOrders);
+        employee.remainingSpace -= cluster.totalSpaceRequired;
       }
-    })
+    });
 
     // 8. Handle unassigned job orders
     const unassignedOrders = assignments.find((a) => a.employeeId === "jobOrders")!.jobOrders;

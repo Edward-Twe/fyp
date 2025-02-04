@@ -18,6 +18,8 @@ import { useParams, useRouter } from "next/navigation"
 import { useToast } from "@/components/hooks/use-toast"
 import { editSchedule, findSchedule, getEmployees } from "./action"
 import { SaveScheduleDialog } from "../../utils/save-schedule-dialog"
+import { LoadingDialog } from "@/components/LoadingDialog"
+import { DistanceDialog } from "@/app/(main)/schedule/utils/auto-sched-dialog"
 
 export default function SchedulesPage() {
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false)
@@ -35,6 +37,10 @@ export default function SchedulesPage() {
   const router = useRouter()
   const params = useParams()
   const { id } = params
+  const [isAutoScheduling, setIsAutoScheduling] = useState(false)
+  const [isDistanceDialogOpen, setIsDistanceDialogOpen] = useState(false)
+  const [maxDistance, setMaxDistance] = useState<number>(0)
+  const [tempDistance, setTempDistance] = useState<string>('')
 
   useEffect(() => {
     async function fetchEmpJob() {
@@ -87,43 +93,89 @@ export default function SchedulesPage() {
     }
   }
 
-  async function autoSchedule() {
+  async function autoSchedule(distance?: number) {
     if (!departure || selectedEmployees.length === 0 || selectedJobOrders.length === 0) {
       setError("Please select departure location, employees, and job orders")
       return
     }
 
+    setIsAutoScheduling(true)
     try {
       const depot: Location = {
         lat: departure.location.latitude,
         lng: departure.location.longitude,
+        placeId: departure.location.placeId
       }
 
-      const schedule = await optimizeRoutes(selectedJobOrders, selectedEmployees, depot)
+      const distanceToUse = distance ?? maxDistance
+
+      const schedule = await optimizeRoutes(selectedJobOrders, selectedEmployees, depot, distanceToUse)
 
       const newColumns: Columns = {
         jobOrders: {
           id: "jobOrders",
           title: "Job Orders",
-          jobOrders: [],
+          jobOrders: [...selectedJobOrders]
         },
       }
 
-      schedule.assignments.forEach((assignment) => {
-        const employee = selectedEmployees.find((emp) => emp.id === assignment.employeeId)
-        if (employee) {
-          newColumns[employee.id] = {
-            id: employee.id,
-            title: employee.name,
-            jobOrders: assignment.jobOrders as JobOrderWithTasks[],
-          }
+      // Create empty columns for all selected employees
+      selectedEmployees.forEach((employee) => {
+        newColumns[employee.id] = {
+          id: employee.id,
+          title: employee.name,
+          jobOrders: [],
         }
       })
+
+      // Only distribute job orders if optimization was successful
+      if (schedule.assignments && schedule.assignments.length > 0 && !schedule.error) {
+        // Clear the jobOrders column as we'll redistribute
+        newColumns.jobOrders.jobOrders = []
+
+        schedule.assignments.forEach((assignment) => {
+          if (assignment.employeeId === 'jobOrders') {
+            newColumns.jobOrders.jobOrders = assignment.jobOrders as JobOrderWithTasks[]
+          } else {
+            const employee = selectedEmployees.find(emp => emp.id === assignment.employeeId)
+            if (employee) {
+              newColumns[employee.id] = {
+                id: employee.id,
+                title: employee.name,
+                jobOrders: assignment.jobOrders as JobOrderWithTasks[]
+              }
+            }
+          }
+        })
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Auto-scheduling failed",
+          description: schedule.error || "Route optimization failed. All job orders remain unassigned."
+        })
+      }
 
       setColumns(newColumns)
     } catch (error) {
       console.error("Error in auto-scheduling:", error)
-      setError("Failed to optimize routes")
+      toast({
+        variant: "destructive",
+        title: "Auto-scheduling failed",
+        description: "An error occurred during route optimization. All job orders remain unassigned."
+      })
+    } finally {
+      setIsAutoScheduling(false)
+    }
+  }
+
+  const handleConfirm = () => {
+    const distance = Number(tempDistance)
+    if (distance > 0) {
+      setMaxDistance(distance)
+      setIsDistanceDialogOpen(false)
+      autoSchedule(distance)
+    } else {
+      setError("Please enter a valid number greater than 0")
     }
   }
 
@@ -153,6 +205,7 @@ export default function SchedulesPage() {
               country: fetchedSchedule.departCountry,
               latitude: Number(fetchedSchedule.departLatitude),
               longitude: Number(fetchedSchedule.departLongitude),
+              placeId: fetchedSchedule.departPlaceId,
             },
           })
 
@@ -218,7 +271,9 @@ export default function SchedulesPage() {
       departLatitude: departure.location.latitude,
       departLongitude: departure.location.longitude,
       departTime: departure.datetime,
+      departPlaceId: departure.location.placeId,
     }
+
 
     setError(null)
     startTransition(async () => {
@@ -317,7 +372,14 @@ export default function SchedulesPage() {
             }}
           />
           <DepartureDialog departure={departure} onDepartureChange={setDeparture} />
-          <Button size="sm" variant="outline" onClick={autoSchedule}>
+          <Button 
+            size="sm" 
+            variant="outline" 
+            onClick={() => {
+              setTempDistance(maxDistance.toString())
+              setIsDistanceDialogOpen(true)
+            }}
+          >
             AutoSched
           </Button>
           <Button
@@ -373,6 +435,15 @@ export default function SchedulesPage() {
           />
         )}
       </div>
+
+      <LoadingDialog isOpen={isAutoScheduling} message="Loading..." />
+      <DistanceDialog 
+        isOpen={isDistanceDialogOpen}
+        onOpenChange={setIsDistanceDialogOpen}
+        tempDistance={tempDistance}
+        onTempDistanceChange={setTempDistance}
+        onConfirm={handleConfirm}
+      />
     </div>
   )
 }

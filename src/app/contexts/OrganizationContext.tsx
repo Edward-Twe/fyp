@@ -1,5 +1,8 @@
+'use client'
+
 import React, { useEffect, useState } from 'react';
 import { Organization } from '@prisma/client'; // Adjust the import path as needed
+
 
 interface OrganizationContextType {
   selectedOrg: Organization | null;

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ChevronDown, Settings, Calendar, CheckSquare, Users, Package, BarChart3, Home, PlusCircle } from 'lucide-react';
+import { ChevronDown, Settings, Calendar, CheckSquare, Users, Package, Home, PlusCircle } from 'lucide-react';
 
 import UserButton from "@/components/UserButton";
 import { Button } from "@/components/ui/button";
@@ -168,7 +168,7 @@ function LeftSidebarContent({
                     ))}
                     <DropdownMenuItem 
                       className="cursor-pointer" 
-                      onClick={() => redirect('/organizations')}
+                      onClick={() => redirect('/organizations/create')}
                     >
                       <PlusCircle className="ml-2 mr-4 h-8 w-8 rounded-full object-cover" />
                       <span>Create New</span>
@@ -216,13 +216,13 @@ function LeftSidebarContent({
             href="/job-orders" 
             disabled={selectedOrg == null}
           />
-          <NavItem
+          {/* <NavItem
             collapsed={collapsed}
             icon={BarChart3}
             label="Reports"
             href="/reports" 
             disabled={selectedOrg == null}
-          />
+          /> */}
         </nav>
 
         <div className="mt-auto">

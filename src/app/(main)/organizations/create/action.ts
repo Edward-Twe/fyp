@@ -26,8 +26,9 @@ export async function createOrganization(
       },
     });
     
-    revalidatePath("/");
+    revalidatePath("/");  
     return { success: true };
+
   } catch (error) {
     if (isRedirectError(error)) throw error;
     console.error(error);

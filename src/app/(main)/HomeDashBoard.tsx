@@ -8,7 +8,6 @@ import schedule from '@/assets/schedule.jpeg'
 import tasks from '@/assets/tasks.jpeg'
 import employees from '@/assets/employees.jpeg'
 import products from '@/assets/products.jpeg'
-import reports from '@/assets/reports.jpeg'
 
 
 const boxes = [
@@ -17,7 +16,7 @@ const boxes = [
   { title: 'Tasks', href: '/tasks', color: 'bg-yellow-500', image: tasks },
   { title: 'Employees', href: '/employees', color: 'bg-red-500', image: employees },
   { title: 'Products', href: '/products', color: 'bg-purple-500', image: products },
-  { title: 'Reports', href: '/reports', color: 'bg-indigo-500', image: reports },
+  // { title: 'Reports', href: '/reports', color: 'bg-indigo-500', image: reports },
 ]
 
 export default function Dashboard() {

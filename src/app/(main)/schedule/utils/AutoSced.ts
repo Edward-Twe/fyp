@@ -94,71 +94,109 @@ export async function optimizeRoutes(
           lat: decimalToNumber(order.latitude),
           lng: decimalToNumber(order.longitude),
           placeId: order.placeId,
-        }))
+        }));
         try {
-          const result = await optimizeRoute(locations, depot)
+          const result = await optimizeRoute(locations, depot);
           if (result.error) {
-            throw new Error(result.error)
+            throw new Error(result.error);
           }
-
-          // optimizedRoute.forEach((location) => {
-          //   cluster.jobOrders.forEach((order) => {
-          //     console.log("Comparing:", {
-          //       orderPlaceId: order.placeId,
-          //       routePlaceId: location.placeId,
-          //     })
-          //   })
-          // })
           return {
             ...cluster,
             jobOrders: result.locations.map(
               (location) =>
                 cluster.jobOrders.find(
                   (order) => order.placeId === location.placeId
-                )!,
+                )!
             ),
-          }
+          };
         } catch (error) {
-          console.error(`Error optimizing route for cluster ${cluster.id}:`, error)
-          throw error
+          console.error(`Error optimizing route for cluster ${cluster.id}:`, error);
+          throw error;
         }
-      }),
-    )
+      })
+    );
 
-    // console.log(optimizedClusters)
+        // console.log(optimizedClusters)
 
-    // 3. Create mutable copy of employees to track remaining capacity
+    
+    // 3. Split clusters if needed to ensure each employee gets at least one
+    while (optimizedClusters.length < employees.length) {
+      optimizedClusters.sort((a, b) => b.totalSpaceRequired - a.totalSpaceRequired);
+      const largestCluster = optimizedClusters.shift()!;
+      const splitClusters = splitCluster(largestCluster);
+      
+      optimizedClusters.push(...splitClusters);
+      console.log("even splitted");
+    }
+
+
+    // 4. Check and split clusters that exceed max employee capacity
+    const maxEmployeeSpace = Math.max(...employees.map(emp => decimalToNumber(emp.space)));
+    let needsResplit = true;
+    while (needsResplit) {
+      needsResplit = false;
+      for (let i = 0; i < optimizedClusters.length; i++) {
+        if (optimizedClusters[i].totalSpaceRequired > maxEmployeeSpace) {
+          const originalCluster = optimizedClusters[i];
+          const newCluster = {
+            ...originalCluster,
+            id: originalCluster.id * 2 + 1,
+            jobOrders: [] as JobOrders[],
+            totalSpaceRequired: 0,
+            centroid: { lat: 0, lng: 0 }
+          };
+
+          // Remove job orders one by one until original cluster fits
+          while (originalCluster.totalSpaceRequired > maxEmployeeSpace && originalCluster.jobOrders.length > 0) {
+            const movedOrder = originalCluster.jobOrders.pop()!;
+            newCluster.jobOrders.unshift(movedOrder);
+            originalCluster.totalSpaceRequired -= Number(movedOrder.spaceRequried);
+            newCluster.totalSpaceRequired += Number(movedOrder.spaceRequried);
+          }
+
+          // Recalculate centroids for both clusters
+          const calculateCentroid = (orders: JobOrders[]) => {
+            const total = orders.reduce(
+              (acc, order) => {
+                acc.lat += Number(order.latitude);
+                acc.lng += Number(order.longitude);
+                return acc;
+              },
+              { lat: 0, lng: 0 }
+            );
+            return {
+              lat: total.lat / orders.length,
+              lng: total.lng / orders.length,
+            };
+          };
+
+          originalCluster.centroid = calculateCentroid(originalCluster.jobOrders);
+          newCluster.centroid = calculateCentroid(newCluster.jobOrders);
+
+          optimizedClusters.splice(i, 1, originalCluster, newCluster);
+          needsResplit = true;
+          //console.log("max splitted:", optimizedClusters);
+          break;
+        }
+      }
+    }
+
+    // 5. Initialize assignments and employee capacity tracking
     const employeesWithCapacity = employees.map(emp => ({
       ...emp,
-      remainingSpace: decimalToNumber(emp.space)
-    }))
+      remainingSpace: decimalToNumber(emp.space),
+      areaLat: decimalToNumber(Number(emp.areaLat)),
+      areaLong: decimalToNumber(Number(emp.areaLong))
+    }));
 
-    // 4. Sort clusters and employees
-    optimizedClusters.sort((a, b) => b.totalSpaceRequired - a.totalSpaceRequired)
-    employeesWithCapacity.sort((a, b) => b.remainingSpace - a.remainingSpace)
 
-    // 5. Split optimized clusters if necessary
-    while (optimizedClusters.length < employeesWithCapacity.length) {
-      
-      optimizedClusters.sort((a, b) => b.totalSpaceRequired - a.totalSpaceRequired)
-      // console.log(optimizedClusters);
-      const largestCluster = optimizedClusters.shift()
-      if (!largestCluster) {
-        break
-      }
-      const splitClusters = splitCluster(largestCluster)
-      optimizedClusters.push(...splitClusters)
-    }
-    // console.log("Clusters after splitting:", optimizedClusters);
-
-    // 6. Initialize assignments
     const assignments: Assignment[] = employeesWithCapacity.map(employee => ({
       employeeId: employee.id,
       jobOrders: [] as JobOrders[],
       route: [] as Location[],
       totalDistance: 0,
       centroid: { lat: 0, lng: 0 }
-    }))
+    }));
 
 
     // Add 'jobOrders' assignment for unassigned job orders
@@ -168,79 +206,130 @@ export async function optimizeRoutes(
       route: [] as Location[],
       totalDistance: 0,
       centroid: { lat: 0, lng: 0 }
-    })
-
-    console.log(employeesWithCapacity)
-    // 7. Assign clusters to employees
-    optimizedClusters.forEach((cluster) => {
-      // Find employee with most remaining space instead of using index
-      const employee = employeesWithCapacity
-        .filter(emp => emp.remainingSpace >= cluster.totalSpaceRequired)
-        .sort((a, b) => b.remainingSpace - a.remainingSpace)[0];
-
-      if (!employee) {
-        // If no employee has enough space, add to unassigned
-        assignments
-          .find((a) => a.employeeId === "jobOrders")!
-          .jobOrders.push(...cluster.jobOrders);
-        return;
-      }
-
-      const assignment = assignments.find((a) => a.employeeId === employee.id)!;
-
-      if (cluster.totalSpaceRequired <= employee.remainingSpace) {
-        assignment.jobOrders.push(...cluster.jobOrders);
-        assignment.centroid = cluster.centroid;
-        employee.remainingSpace -= cluster.totalSpaceRequired;
-      } else {
-        // Remove job orders from the end until the cluster fits
-        while (cluster.totalSpaceRequired > employee.remainingSpace && cluster.jobOrders.length > 0) {
-          const removedOrder = cluster.jobOrders.pop()!;
-          cluster.totalSpaceRequired -= Number(removedOrder.spaceRequried);
-          assignments.find((a) => a.employeeId === "jobOrders")!.jobOrders.push(removedOrder);
-        }
-        assignment.jobOrders.push(...cluster.jobOrders);
-        employee.remainingSpace -= cluster.totalSpaceRequired;
-      }
     });
 
-    // 8. Handle unassigned job orders
-    const unassignedOrders = assignments.find((a) => a.employeeId === "jobOrders")!.jobOrders;
-    unassignedOrders.forEach((order) => {
-      let closestAssignment: Assignment | null = null;
-      let minDistance = maxDistance + 10;
+    // 6. First, ensure each employee gets their closest cluster
+    const processedClusters = new Set<number>();
+    const employeesWithoutCluster = new Set(employeesWithCapacity.map(emp => emp.id));
+    const unassignedAssignment = assignments.find(a => a.employeeId === "jobOrders")!;
+    // For each employee, find their closest viable cluster
+    for (const employee of employeesWithCapacity) {
+      if (!employeesWithoutCluster.has(employee.id)) continue;
 
-      assignments.forEach((assignment) => {
-        if (assignment.employeeId !== "jobOrders") {
-          const distance = calculateDistance(
-            assignment.centroid.lat,
-            assignment.centroid.lng,
-            decimalToNumber(order.latitude),
-            decimalToNumber(order.longitude)
-          );
+      // Get all unassigned clusters sorted by distance to this employee
+      const availableClusters = optimizedClusters
+        .filter(cluster => !processedClusters.has(cluster.id))
+        .map(cluster => ({
+          cluster,
+          distance: calculateDistance(
+            employee.areaLat,
+            employee.areaLong,
+            cluster.centroid.lat,
+            cluster.centroid.lng
+          )
+        }))
+        .sort((a, b) => a.distance - b.distance);
 
-          if (
-            distance < minDistance &&
-            assignment.jobOrders.reduce((sum, o) => sum + Number(o.spaceRequried), 0) + Number(order.spaceRequried) <=
-              employeesWithCapacity.find((e) => e.id === assignment.employeeId)!.remainingSpace
-          ) {
-            minDistance = distance;
-            closestAssignment = assignment;
+      // Find the first cluster and assign what fits
+      for (const { cluster } of availableClusters) {
+        const assignment = assignments.find(a => a.employeeId === employee.id)!;
+        
+        if (cluster.totalSpaceRequired <= employee.remainingSpace) {
+          // Assign entire cluster
+          assignment.jobOrders.push(...cluster.jobOrders);
+          assignment.centroid = cluster.centroid;
+          employee.remainingSpace -= cluster.totalSpaceRequired;
+          processedClusters.add(cluster.id);
+          employeesWithoutCluster.delete(employee.id);
+          break;
+        } else {
+          // Remove job orders from the end until the cluster fits
+          const modifiedClusterOrders = [...cluster.jobOrders];
+          const removedOrders: JobOrders[] = [];
+          let totalSpace = cluster.totalSpaceRequired;
+
+          while (totalSpace > employee.remainingSpace && modifiedClusterOrders.length > 0) {
+            const removedOrder = modifiedClusterOrders.pop()!;
+            removedOrders.push(removedOrder);
+            totalSpace -= Number(removedOrder.spaceRequried);
+          }
+
+          if (modifiedClusterOrders.length > 0) {
+            // Assign the reduced cluster
+            assignment.jobOrders.push(...modifiedClusterOrders);
+            employee.remainingSpace -= totalSpace;
+            // Add removed orders to unassigned
+            unassignedAssignment.jobOrders.push(...removedOrders);
+            processedClusters.add(cluster.id);
+            employeesWithoutCluster.delete(employee.id);
+            break;
           }
         }
-      });
+      }
+    }
 
-      if (closestAssignment) {
-        (closestAssignment as Assignment).jobOrders.push(order);
-        const employee = employeesWithCapacity.find((e) => e.id === closestAssignment!.employeeId)!;
+    const unassignedClusters = optimizedClusters.filter(cluster => !processedClusters.has(cluster.id));
+    unassignedAssignment.jobOrders.push(...unassignedClusters.flatMap(cluster => cluster.jobOrders));
+
+    // 7. Handle unassigned orders with route optimization
+    const remainingUnassigned: JobOrders[] = [];
+
+    for (const order of unassignedAssignment.jobOrders) {
+      let bestAssignment: Assignment | null = null;
+      let minDistance = maxDistance;
+
+      for (const assignment of assignments) {
+        if (assignment.employeeId === "jobOrders") continue;
+
+        const employee = employeesWithCapacity.find(e => e.id === assignment.employeeId)!;
+        if (employee.remainingSpace < Number(order.spaceRequried)) continue;
+
+        const distance = calculateDistance(
+          employee.areaLat,
+          employee.areaLong,
+          decimalToNumber(order.latitude),
+          decimalToNumber(order.longitude)
+        );
+
+        if (distance < minDistance) {
+          minDistance = distance;
+          bestAssignment = assignment;
+        }
+      }
+
+      if (bestAssignment) {
+        bestAssignment.jobOrders.push(order);
+        const employee = employeesWithCapacity.find(e => e.id === bestAssignment.employeeId)!;
         employee.remainingSpace -= Number(order.spaceRequried);
 
-      }
-    });
+        // Reoptimize route for this assignment
+        const locations = bestAssignment.jobOrders.map(order => ({
+          lat: decimalToNumber(order.latitude),
+          lng: decimalToNumber(order.longitude),
+          placeId: order.placeId,
+        }));
 
-    return {
-      assignments: assignments.filter((a) => a.employeeId !== "jobOrders"),
-    };
+        try {
+          const result = await optimizeRoute(locations, depot);
+          if (!result.error) {
+            bestAssignment.jobOrders = result.locations.map(
+              location => bestAssignment!.jobOrders.find(
+                order => order.placeId === location.placeId
+              )!
+            );
+          }
+        } catch (error) {
+          console.error("Error optimizing route:", error);
+        }
+      } else {
+        remainingUnassigned.push(order);
+      }
+    }
+
+    // Update unassignedAssignment with truly unassigned orders
+    unassignedAssignment.jobOrders = remainingUnassigned;
+
+    return { assignments };
   } catch (error) {
     console.error("Error in route optimization:", error);
     return {

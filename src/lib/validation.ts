@@ -36,6 +36,20 @@ export const organizationSchema = z.object({
 
 export type OrganizationValues = z.infer<typeof organizationSchema>;
 
+export const updateOrganizationSchema = z.object({
+  id: requiredString,
+  name: requiredString,
+  email: z.string().email("Invalid email address").optional(),
+  location: z.string().optional(),
+  logoUrl: z
+
+    .string()
+    .optional(),
+});
+
+export type UpdateOrganizationValues = z.infer<typeof updateOrganizationSchema>;
+
+
 export const employeeSchema = z.object({
   name: requiredString,
   email: z.preprocess(

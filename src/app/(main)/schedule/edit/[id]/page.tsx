@@ -316,43 +316,42 @@ export default function SchedulesPage() {
     })
   }
 
-  const updateColumns = (newSelectedEmployees: Employees[], newSelectedJobOrders: JobOrderWithTasks[]) => {
-    const newColumns: Columns = {
-      jobOrders: {
-        id: "jobOrders",
-        title: "Job Orders",
-        jobOrders: [],
-      },
-    }
-
-    // Create columns for all selected employees
-    newSelectedEmployees.forEach((employee) => {
-      newColumns[employee.id] = {
-        id: employee.id,
-        title: employee.name,
-        jobOrders: [],
-      }
-    })
-
-    // Distribute job orders to their respective columns
-    newSelectedJobOrders.forEach((jobOrder) => {
-      let placed = false
-      for (const columnId in newColumns) {
-        if (columnId !== "jobOrders" && columns[columnId]?.jobOrders.some((jo) => jo.id === jobOrder.id)) {
-          newColumns[columnId].jobOrders.push(jobOrder)
-          placed = true
-          break
-        }
-      }
-      if (!placed) {
-        newColumns.jobOrders.jobOrders.push(jobOrder)
-      }
-    })
-
-    setColumns(newColumns)
-  }
-
   useEffect(() => {
+    const updateColumns = (newSelectedEmployees: Employees[], newSelectedJobOrders: JobOrderWithTasks[]) => {
+      const newColumns: Columns = {
+        jobOrders: {
+          id: "jobOrders",
+          title: "Job Orders",
+          jobOrders: [],
+        },
+      }
+  
+      // Create columns for all selected employees
+      newSelectedEmployees.forEach((employee) => {
+        newColumns[employee.id] = {
+          id: employee.id,
+          title: employee.name,
+          jobOrders: [],
+        }
+      })
+  
+      // Distribute job orders to their respective columns
+      newSelectedJobOrders.forEach((jobOrder) => {
+        let placed = false
+        for (const columnId in newColumns) {
+          if (columnId !== "jobOrders" && columns[columnId]?.jobOrders.some((jo) => jo.id === jobOrder.id)) {
+            newColumns[columnId].jobOrders.push(jobOrder)
+            placed = true
+            break
+          }
+        }
+        if (!placed) {
+          newColumns.jobOrders.jobOrders.push(jobOrder)
+        }
+      })
+  
+      setColumns(newColumns)
+    }
     updateColumns(selectedEmployees, selectedJobOrders)
   }, [selectedEmployees, selectedJobOrders])
 
@@ -373,7 +372,6 @@ export default function SchedulesPage() {
             getItemLabel={(employee) => `${employee.name}`}
             onSelectionChange={(newSelectedEmployees) => {
               setSelectedEmployees(newSelectedEmployees)
-              updateColumns(newSelectedEmployees, selectedJobOrders)
             }}
           />
           <SelectionDialog
@@ -386,7 +384,6 @@ export default function SchedulesPage() {
             getItemStatus={(jobOrder) => jobOrder.status}
             onSelectionChange={(newSelectedJobOrders) => {
               setSelectedJobOrders(newSelectedJobOrders)
-              updateColumns(selectedEmployees, newSelectedJobOrders)
             }}
           />
           <DepartureDialog departure={departure} onDepartureChange={setDeparture} />

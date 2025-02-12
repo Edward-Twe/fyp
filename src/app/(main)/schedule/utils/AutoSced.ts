@@ -28,52 +28,52 @@ const calculateCentroid = (orders: JobOrders[]) => {
   };
 };
 
-function splitCluster(cluster: Cluster): Cluster[] {
-  const midPoint = Math.floor(cluster.jobOrders.length / 2)
+// function splitCluster(cluster: Cluster): Cluster[] {
+//   const midPoint = Math.floor(cluster.jobOrders.length / 2)
 
-  const calculateCentroid = (jobOrders: JobOrders[]) => {
-    const total = jobOrders.reduce(
-      (acc, order) => {
-        acc.lat += Number(order.latitude)
-        acc.lng += Number(order.longitude)
-        return acc
-      },
-      { lat: 0, lng: 0 }
-    )
-    const count = jobOrders.length
-    return {
-      lat: total.lat / count,
-      lng: total.lng / count,
-    }
-  }
+//   const calculateCentroid = (jobOrders: JobOrders[]) => {
+//     const total = jobOrders.reduce(
+//       (acc, order) => {
+//         acc.lat += Number(order.latitude)
+//         acc.lng += Number(order.longitude)
+//         return acc
+//       },
+//       { lat: 0, lng: 0 }
+//     )
+//     const count = jobOrders.length
+//     return {
+//       lat: total.lat / count,
+//       lng: total.lng / count,
+//     }
+//   }
 
-  const cluster1JobOrders = cluster.jobOrders.slice(0, midPoint)
-  const cluster2JobOrders = cluster.jobOrders.slice(midPoint)
+//   const cluster1JobOrders = cluster.jobOrders.slice(0, midPoint)
+//   const cluster2JobOrders = cluster.jobOrders.slice(midPoint)
 
-  const cluster1 = {
-    ...cluster,
-    id: cluster.id * 2,
-    jobOrders: cluster1JobOrders,
-    totalSpaceRequired: cluster1JobOrders.reduce(
-      (sum, order) => sum + Number(order.spaceRequried),
-      0
-    ),
-    centroid: calculateCentroid(cluster1JobOrders),
-  }
+//   const cluster1 = {
+//     ...cluster,
+//     id: cluster.id * 2,
+//     jobOrders: cluster1JobOrders,
+//     totalSpaceRequired: cluster1JobOrders.reduce(
+//       (sum, order) => sum + Number(order.spaceRequried),
+//       0
+//     ),
+//     centroid: calculateCentroid(cluster1JobOrders),
+//   }
 
-  const cluster2 = {
-    ...cluster,
-    id: cluster.id * 2 + 1,
-    jobOrders: cluster2JobOrders,
-    totalSpaceRequired: cluster2JobOrders.reduce(
-      (sum, order) => sum + Number(order.spaceRequried),
-      0
-    ),
-    centroid: calculateCentroid(cluster2JobOrders),
-  }
+//   const cluster2 = {
+//     ...cluster,
+//     id: cluster.id * 2 + 1,
+//     jobOrders: cluster2JobOrders,
+//     totalSpaceRequired: cluster2JobOrders.reduce(
+//       (sum, order) => sum + Number(order.spaceRequried),
+//       0
+//     ),
+//     centroid: calculateCentroid(cluster2JobOrders),
+//   }
 
-  return [cluster1, cluster2]
-}
+//   return [cluster1, cluster2]
+// }
 
 function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const toRadians = (degrees: number) => degrees * (Math.PI / 180);

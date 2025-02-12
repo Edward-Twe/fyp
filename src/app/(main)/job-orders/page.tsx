@@ -10,8 +10,7 @@ import Link from "next/link";
 import { Plus, MoreHorizontal, Search, ChevronDown } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import { DateRangePicker } from "@/components/DateRangePicker";
-import { Checkbox } from "@/components/ui/checkbox";
-import { format, parseISO, isWithinInterval, endOfDay } from "date-fns";
+import { isWithinInterval, endOfDay } from "date-fns";
 import { DateRange } from "react-day-picker";
 import {
   DropdownMenu,

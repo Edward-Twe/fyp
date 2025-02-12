@@ -13,6 +13,21 @@ function decimalToNumber(decimal: Decimal | number): number {
   return decimal as number
 }
 
+const calculateCentroid = (orders: JobOrders[]) => {
+  const total = orders.reduce(
+    (acc, order) => {
+      acc.lat += Number(order.latitude);
+      acc.lng += Number(order.longitude);
+      return acc;
+    },
+    { lat: 0, lng: 0 }
+  );
+  return {
+    lat: total.lat / orders.length,
+    lng: total.lng / orders.length,
+  };
+};
+
 function splitCluster(cluster: Cluster): Cluster[] {
   const midPoint = Math.floor(cluster.jobOrders.length / 2)
 
@@ -123,12 +138,29 @@ export async function optimizeRoutes(
     while (optimizedClusters.length < employees.length) {
       optimizedClusters.sort((a, b) => b.totalSpaceRequired - a.totalSpaceRequired);
       const largestCluster = optimizedClusters.shift()!;
-      const splitClusters = splitCluster(largestCluster);
+      const splitClusters = [
+        {
+          ...largestCluster,
+          id: optimizedClusters.length + 1,
+          jobOrders: largestCluster.jobOrders.slice(0, Math.floor(largestCluster.jobOrders.length / 2)),
+        },
+        {
+          ...largestCluster,
+          id: optimizedClusters.length + 2,
+          jobOrders: largestCluster.jobOrders.slice(Math.floor(largestCluster.jobOrders.length / 2)),
+        }
+      ].map(cluster => ({
+        ...cluster,
+        totalSpaceRequired: cluster.jobOrders.reduce(
+          (sum, order) => sum + Number(order.spaceRequried),
+          0
+        ),
+        centroid: calculateCentroid(cluster.jobOrders),
+      }));
       
       optimizedClusters.push(...splitClusters);
-      console.log("even splitted");
+      console.log("splitted", optimizedClusters);
     }
-
 
     // 4. Check and split clusters that exceed max employee capacity
     const maxEmployeeSpace = Math.max(...employees.map(emp => decimalToNumber(emp.space)));
@@ -140,7 +172,7 @@ export async function optimizeRoutes(
           const originalCluster = optimizedClusters[i];
           const newCluster = {
             ...originalCluster,
-            id: originalCluster.id * 2 + 1,
+            id: optimizedClusters.length + 1,
             jobOrders: [] as JobOrders[],
             totalSpaceRequired: 0,
             centroid: { lat: 0, lng: 0 }
@@ -175,7 +207,6 @@ export async function optimizeRoutes(
 
           optimizedClusters.splice(i, 1, originalCluster, newCluster);
           needsResplit = true;
-          //console.log("max splitted:", optimizedClusters);
           break;
         }
       }
@@ -301,9 +332,20 @@ export async function optimizeRoutes(
         bestAssignment.jobOrders.push(order);
         const employee = employeesWithCapacity.find(e => e.id === bestAssignment.employeeId)!;
         employee.remainingSpace -= Number(order.spaceRequried);
+      } else {
+        remainingUnassigned.push(order);
+      }
+    }
 
-        // Reoptimize route for this assignment
-        const locations = bestAssignment.jobOrders.map(order => ({
+    // Update unassignedAssignment with truly unassigned orders
+    unassignedAssignment.jobOrders = remainingUnassigned;
+
+    // 8. Final route optimization for all assignments
+    for (const assignment of assignments) {
+      if (assignment.employeeId === "jobOrders") continue;
+
+      if (assignment.jobOrders.length > 0) {
+        const locations = assignment.jobOrders.map(order => ({
           lat: decimalToNumber(order.latitude),
           lng: decimalToNumber(order.longitude),
           placeId: order.placeId,
@@ -312,8 +354,8 @@ export async function optimizeRoutes(
         try {
           const result = await optimizeRoute(locations, depot);
           if (!result.error) {
-            bestAssignment.jobOrders = result.locations.map(
-              location => bestAssignment!.jobOrders.find(
+            assignment.jobOrders = result.locations.map(
+              location => assignment.jobOrders.find(
                 order => order.placeId === location.placeId
               )!
             );
@@ -321,13 +363,8 @@ export async function optimizeRoutes(
         } catch (error) {
           console.error("Error optimizing route:", error);
         }
-      } else {
-        remainingUnassigned.push(order);
       }
     }
-
-    // Update unassignedAssignment with truly unassigned orders
-    unassignedAssignment.jobOrders = remainingUnassigned;
 
     return { assignments };
   } catch (error) {

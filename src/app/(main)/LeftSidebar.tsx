@@ -109,7 +109,7 @@ function LeftSidebarContent({
         )}
       >
         <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 hover:cursor-pointer" onClick={() => redirect('/')}>
             <Image src={Logo.src} alt="Logo" width={40} height={40} />
             {!collapsed && (
               <ThemedImage

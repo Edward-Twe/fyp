@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -27,6 +27,7 @@ import { useOrganization } from "@/app/contexts/OrganizationContext";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { deleteTask } from "./delete/action";
 import { toast } from "@/components/hooks/use-toast";
+import { Input } from "@/components/ui/input";
 
 export default function TasksPage() {
   // fetch the selected organization
@@ -34,6 +35,7 @@ export default function TasksPage() {
   const [tasks, setTasks] = useState<Tasks[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     async function fetchTasks() {
@@ -80,6 +82,11 @@ export default function TasksPage() {
     }
   }
 
+  // Filter tasks based on search query
+  const filteredTasks = tasks.filter((task) =>
+    task.task.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   if (error) {
     return <div>{error}</div>
   }
@@ -102,6 +109,21 @@ export default function TasksPage() {
           </Link>
         </Button>
       </div>
+
+      <div className="mb-6 space-y-4">
+        <div className="flex gap-4">
+          <div className="flex-1 relative max-w-sm">
+            <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search task name..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-8"
+            />
+          </div>
+        </div>
+      </div>
+
       <Table>
         <TableHeader>
           <TableRow>
@@ -112,7 +134,7 @@ export default function TasksPage() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {tasks.map((task) => (
+          {filteredTasks.map((task) => (
             <TableRow key={task.id}>
               <TableCell className="font-medium">{task.task}</TableCell>
               <TableCell>{task.requiredTimeValue.toString()} {task.requiredTimeUnit}</TableCell>

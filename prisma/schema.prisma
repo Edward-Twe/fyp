@@ -62,18 +62,19 @@ model Organization {
 }
 
 model Employees {
-  id           String       @id @default(cuid())
-  name         String
-  email        String?
-  area         String?
-  areaLat      Decimal?
-  areaLong     Decimal?
-  space        Decimal
-  orgId        String
-  userId       String?
-  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  user         User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  JobOrders    JobOrders[]
+  id                String              @id @default(cuid())
+  name              String
+  email             String?
+  area              String
+  areaLat           Decimal
+  areaLong          Decimal
+  space             Decimal
+  orgId             String
+  userId            String?
+  organization      Organization        @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user              User?               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  JobOrders         JobOrders[]
+  EmployeeSchedules EmployeeSchedules[]
 
   @@map("employees")
 }
@@ -159,8 +160,24 @@ model Schedules {
   departTime      DateTime
   departPlaceId   String
 
-  jobOrder     JobOrders[]
-  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  jobOrder          JobOrders[]
+  organization      Organization        @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  EmployeeSchedules EmployeeSchedules[]
 
   @@map("schedules")
+}
+
+model EmployeeSchedules {
+  id            String  @id @default(cuid())
+  employeeId    String
+  scheduleId    String
+  totalDistance Decimal
+  totalTime     Decimal
+  totalOrders   Int
+  totalSpace    Decimal
+
+  employee Employees @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  schedule Schedules @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@map("employee_schedules")
 }

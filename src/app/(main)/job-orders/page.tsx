@@ -7,7 +7,12 @@ import { useOrganization } from "@/app/contexts/OrganizationContext";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Plus, MoreHorizontal } from 'lucide-react';
+import { Plus, MoreHorizontal, Search, ChevronDown } from 'lucide-react';
+import { Input } from "@/components/ui/input";
+import { DateRangePicker } from "@/components/DateRangePicker";
+import { Checkbox } from "@/components/ui/checkbox";
+import { format, parseISO, isWithinInterval, endOfDay } from "date-fns";
+import { DateRange } from "react-day-picker";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,6 +34,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { deleteJobOrder } from "./delete/action";
 import { useToast } from "@/components/hooks/use-toast";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 type JobOrderWithTasks = JobOrders & {
   JobOrderTask: (JobOrderTask & {
@@ -39,9 +51,15 @@ type JobOrderWithTasks = JobOrders & {
 export default function JobOrdersPage() {
   const { selectedOrg } = useOrganization();
   const [jobOrders, setJobOrders] = useState<JobOrderWithTasks[]>([]);
+  const [filteredJobOrders, setFilteredJobOrders] = useState<JobOrderWithTasks[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  
+  // Filter states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   useEffect(() => {
     async function fetchJobOrders() {
@@ -69,6 +87,36 @@ export default function JobOrdersPage() {
 
     fetchJobOrders();
   }, [selectedOrg]);
+
+  useEffect(() => {
+    // Filter job orders based on search, date, and status
+    let filtered = jobOrders;
+
+    // Search filter
+    if (searchQuery) {
+      filtered = filtered.filter(order => 
+        order.orderNumber.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Date range filter
+    if (dateRange?.from && dateRange?.to) {
+      filtered = filtered.filter(order => {
+        const orderDate = new Date(order.createdAt);
+        return isWithinInterval(orderDate, {
+          start: dateRange.from!,
+          end: endOfDay(dateRange.to!)
+        });
+      });
+    }
+
+    // Status filter
+    if (statusFilter !== "all") {
+      filtered = filtered.filter(order => order.status === statusFilter);
+    }
+
+    setFilteredJobOrders(filtered);
+  }, [jobOrders, searchQuery, dateRange, statusFilter]);
 
   const handleDeleteJobOrder = async (jobOrderId: string) => {
     const result = await deleteJobOrder(jobOrderId);
@@ -111,64 +159,112 @@ export default function JobOrdersPage() {
           </Link>
         </Button>
       </div>
+
+      {/* Filters */}
+      <div className="mb-6 space-y-4">
+        <div className="flex gap-4">
+          <div className="flex-1 relative max-w-sm">
+            <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search order number..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-8"
+            />
+          </div>
+          <DateRangePicker
+            date={dateRange}
+            onDateChange={setDateRange}
+          />
+          <Select
+            value={statusFilter}
+            onValueChange={setStatusFilter}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="todo">Scheduled</SelectItem>
+              <SelectItem value="unscheduled">Unscheduled</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
       <div className="space-y-4">
-        {jobOrders.map((jobOrder) => (
+        {filteredJobOrders.map((jobOrder) => (
           <Accordion type="single" collapsible key={jobOrder.id}>
             <AccordionItem value={jobOrder.id}>
               <div className="flex items-center justify-between">
-                <AccordionTrigger className="flex-grow text-left">
-                  <div>
-                    <h2 className="text-lg font-semibold">Order #{jobOrder.orderNumber}</h2>
-                    <p className="text-sm text-gray-500">{jobOrder.address}</p>
-                  </div>
-                </AccordionTrigger>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuItem
-                      onClick={() => navigator.clipboard.writeText(jobOrder.id)}
+                <div className="flex-grow">
+                  <h2 className="text-lg font-semibold">Order #{jobOrder.orderNumber}</h2>
+                  <p className="text-sm text-gray-500">{jobOrder.address}</p>
+                  {jobOrder.schedulesId && (
+                    <Link 
+                      href={`/schedule/edit/${jobOrder.schedulesId}`}
+                      className="text-sm text-blue-500 hover:underline"
                     >
-                      Copy job order ID
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link href={`/job-orders/edit/${jobOrder.id}`}>
-                        Edit job order
-                      </Link>
-                    </DropdownMenuItem>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                          Delete job order
-                        </DropdownMenuItem>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>
-                            Are you absolutely sure?
-                          </AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This action cannot be undone. This will permanently
-                            delete the job order and all related data.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleDeleteJobOrder(jobOrder.id)}
-                          >
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                      View Schedule
+                    </Link>
+                  )}
+                  <span className={`ml-2 text-sm ${
+                    jobOrder.status !== 'unscheduled' ? 'text-green-500' : 'text-yellow-500'
+                  }`}>
+                    • {jobOrder.status === 'todo' ? 'Scheduled' : 'Unscheduled'} 
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <AccordionTrigger>
+                  </AccordionTrigger>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="h-8 w-8 p-0">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                      <DropdownMenuItem
+                        onClick={() => navigator.clipboard.writeText(jobOrder.id)}
+                      >
+                        Copy job order ID
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem asChild>
+                        <Link href={`/job-orders/edit/${jobOrder.id}`}>
+                          Edit job order
+                        </Link>
+                      </DropdownMenuItem>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                            Delete job order
+                          </DropdownMenuItem>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              Are you absolutely sure?
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This action cannot be undone. This will permanently
+                              delete the job order and all related data.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDeleteJobOrder(jobOrder.id)}
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
               <AccordionContent>
                 <div className="mt-2 space-y-2">

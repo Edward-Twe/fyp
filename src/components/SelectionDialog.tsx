@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Plus } from 'lucide-react'
 import { DateRangePicker } from "./DateRangePicker"
 import { DateRange } from "react-day-picker"
-import { isWithinInterval, parseISO } from "date-fns"
+import { isWithinInterval, parseISO, endOfDay } from "date-fns"
 import { Status } from "@prisma/client"
 
 interface SelectionDialogProps<T> {
@@ -54,7 +54,7 @@ export function SelectionDialog<T>({
 
     if (getItemDate && dateRange?.from && dateRange?.to) {
       const start = dateRange.from
-      const end = dateRange.to
+      const end = endOfDay(dateRange.to)
       filtered = filtered.filter((item) => {
         const itemDate = parseISO(getItemDate(item))
         if (!start || !end) return true

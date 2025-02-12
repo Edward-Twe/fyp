@@ -11,7 +11,7 @@ import products from '@/assets/products.jpeg'
 
 
 const boxes = [
-  { title: 'Create Organization', href: '/organizations', color: 'bg-blue-500', image: createOrg },
+  { title: 'Create Organization', href: '/organizations/create', color: 'bg-blue-500', image: createOrg },
   { title: 'Schedule', href: '/schedule', color: 'bg-green-500', image: schedule },
   { title: 'Tasks', href: '/tasks', color: 'bg-yellow-500', image: tasks },
   { title: 'Employees', href: '/employees', color: 'bg-red-500', image: employees },

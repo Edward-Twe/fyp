@@ -1,3 +1,4 @@
+"use server"
 import { Location } from "@/app/types/routing";
 
 interface DirectionsResponse {
@@ -16,7 +17,7 @@ interface DirectionsResponse {
 
 export async function optimizeRoute(
   locations: Location[],
-  depot: Location,
+  depot: Location
 ): Promise<{ locations: Location[], error?: string }> {
   if (locations.length === 0) return { locations };
 

@@ -193,6 +193,20 @@ export default function Schedules() {
       return
     }
 
+    // Check if any employees have job orders assigned
+    const hasAssignments = Object.entries(columns).some(([columnId, column]) => {
+      return columnId !== 'jobOrders' && column.jobOrders.length > 0
+    })
+
+    if (!hasAssignments) {
+      toast({
+        title: "Cannot Save Schedule",
+        description: "You must assign at least one job order to an employee before saving.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const scheduleData: ScheduleValues = {
       name,
       departAddress: departure.location.address,
@@ -331,7 +345,9 @@ export default function Schedules() {
         size="sm" 
         variant="outline" 
         onClick={() => setIsSaveDialogOpen(true)}
-        disabled={!departure || !selectedOrg}
+        disabled={!departure || !selectedOrg || !Object.entries(columns).some(([columnId, column]) => 
+          columnId !== 'jobOrders' && column.jobOrders.length > 0
+        )}
       >
         Save
       </Button>

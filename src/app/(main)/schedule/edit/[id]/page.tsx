@@ -261,6 +261,20 @@ export default function SchedulesPage() {
       return
     }
 
+    // Check if any employees have job orders assigned
+    const hasAssignments = Object.entries(columns).some(([columnId, column]) => {
+      return columnId !== 'jobOrders' && column.jobOrders.length > 0
+    })
+
+    if (!hasAssignments) {
+      toast({
+        title: "Cannot Save Schedule",
+        description: "You must assign at least one job order to an employee before saving.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const scheduleData: UpdateScheduleValues = {
       id: id as string,
       name,
@@ -369,6 +383,7 @@ export default function SchedulesPage() {
             getItemId={(jobOrder) => jobOrder.id}
             getItemLabel={(jobOrder) => jobOrder.orderNumber}
             getItemDate={(jobOrder) => getValidDateString(jobOrder.createdAt)}
+            getItemStatus={(jobOrder) => jobOrder.status}
             onSelectionChange={(newSelectedJobOrders) => {
               setSelectedJobOrders(newSelectedJobOrders)
               updateColumns(selectedEmployees, newSelectedJobOrders)
@@ -389,7 +404,9 @@ export default function SchedulesPage() {
             size="sm"
             variant="outline"
             onClick={() => setIsSaveDialogOpen(true)}
-            disabled={!departure || !selectedOrg}
+            disabled={!departure || !selectedOrg || !Object.entries(columns).some(([columnId, column]) => 
+              columnId !== 'jobOrders' && column.jobOrders.length > 0
+            )}
           >
             Save
           </Button>

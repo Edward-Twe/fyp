@@ -57,10 +57,11 @@ export const employeeSchema = z.object({
     z.string().email("Invalid email address").nullable().optional() // Validate email
   ),
   space: z.coerce.number().min(0), 
-  area: z.string().nullable().optional(), 
-  areaLat: z.number(), 
-  areaLong: z.number(), 
+  area: requiredString, 
+  areaLat: z.number().min(-90).max(90), 
+  areaLong: z.number().min(-180).max(180), 
   orgId: requiredString
+
 });
 
 export type EmployeeValues = z.infer<typeof employeeSchema>;
@@ -73,10 +74,11 @@ export const updateEmployeeSchema = z.object({
     z.string().email("Invalid email address").nullable().optional() // Validate email
   ),
   space: z.coerce.number().min(0), 
-  area: z.string().nullable().optional(), 
-  areaLat: z.number(), 
-  areaLong: z.number(), 
+  area: requiredString, 
+  areaLat: z.number().min(-90).max(90),
+  areaLong: z.number().min(-180).max(180), 
   orgId: requiredString
+
 });
 
 export type UpdateEmployeeValues = z.infer<typeof updateEmployeeSchema>;

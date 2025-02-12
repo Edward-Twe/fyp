@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -37,6 +37,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
+import { DateRangePicker } from "@/components/DateRangePicker";
+import { DateRange } from "react-day-picker";
+import { isWithinInterval, endOfDay } from "date-fns";
 
 export default function SchedulesPage() {
   // fetch the selected organization
@@ -45,6 +49,9 @@ export default function SchedulesPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [filteredSchedules, setFilteredSchedules] = useState<Schedules[]>([]);
 
   useEffect(() => {
     async function fetchSchedules() {
@@ -72,6 +79,28 @@ export default function SchedulesPage() {
 
     fetchSchedules();
   }, [selectedOrg]);
+
+  useEffect(() => {
+    let filtered = schedules;
+
+    if (searchQuery) {
+      filtered = filtered.filter(schedule => 
+        schedule.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    if (dateRange?.from && dateRange?.to) {
+      filtered = filtered.filter(schedule => {
+        const scheduleDate = new Date(schedule.createdAt);
+        return isWithinInterval(scheduleDate, {
+          start: dateRange.from!,
+          end: endOfDay(dateRange.to!)
+        });
+      });
+    }
+
+    setFilteredSchedules(filtered);
+  }, [schedules, searchQuery, dateRange]);
 
   const handleDeleteSchedule = async (scheduleId: string) => {
     const result = await deleteSchedule(scheduleId);
@@ -114,6 +143,25 @@ export default function SchedulesPage() {
           </Link>
         </Button>
       </div>
+
+      <div className="mb-6 space-y-4">
+        <div className="flex gap-4">
+          <div className="flex-1 relative max-w-sm">
+            <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search schedule name..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-8"
+            />
+          </div>
+          <DateRangePicker
+            date={dateRange}
+            onDateChange={setDateRange}
+          />
+        </div>
+      </div>
+
       <Table>
         <TableHeader>
           <TableRow>
@@ -123,7 +171,7 @@ export default function SchedulesPage() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {schedules.map((schedule) => (
+          {filteredSchedules.map((schedule) => (
             <TableRow key={schedule.id}>
               <TableCell className="font-medium">{schedule.name}</TableCell>
               <TableCell>

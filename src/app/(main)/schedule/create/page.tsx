@@ -272,10 +272,8 @@ export default function Schedules() {
     });
   }
 
-  
-
+  /* eslint-disable react-hooks/exhaustive-deps */
   useEffect(() => {
-
     const updateColumns = (
       newSelectedEmployees: Employees[],
       newSelectedJobOrders: JobOrderWithTasks[],
@@ -287,7 +285,7 @@ export default function Schedules() {
           jobOrders: [],
         },
       };
-  
+
       // Create columns for all selected employees
       newSelectedEmployees.forEach((employee) => {
         newColumns[employee.id] = {
@@ -296,7 +294,7 @@ export default function Schedules() {
           jobOrders: [],
         };
       });
-  
+
       // Distribute job orders to their respective columns
       newSelectedJobOrders.forEach((jobOrder) => {
         let placed = false;
@@ -314,12 +312,13 @@ export default function Schedules() {
           newColumns.jobOrders.jobOrders.push(jobOrder);
         }
       });
-  
+
       setColumns(newColumns);
     };
 
     updateColumns(selectedEmployees, selectedJobOrders);
   }, [selectedEmployees, selectedJobOrders]);
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   const handleConfirm = () => {
     const distance = Number(tempDistance);

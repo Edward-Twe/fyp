@@ -3,7 +3,7 @@
 import { kMeansClusteringD } from "./clusteringDistance"
 import { optimizeRoute } from "./route-optimizing"
 import { JobOrders, Employees } from "@prisma/client"
-import { OptimizationResult, Location, Assignment, Cluster } from "@/app/types/routing"
+import { OptimizationResult, Location, Assignment } from "@/app/types/routing"
 import { Decimal } from "@prisma/client/runtime/library"
 
 function decimalToNumber(decimal: Decimal | number): number {

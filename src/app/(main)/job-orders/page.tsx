@@ -7,7 +7,7 @@ import { useOrganization } from "@/app/contexts/OrganizationContext";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Plus, MoreHorizontal, Search, ChevronDown } from 'lucide-react';
+import { Plus, MoreHorizontal, Search } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import { DateRangePicker } from "@/components/DateRangePicker";
 import { isWithinInterval, endOfDay } from "date-fns";

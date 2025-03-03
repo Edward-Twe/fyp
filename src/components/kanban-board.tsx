@@ -19,6 +19,13 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Status } from '@prisma/client'
 
 interface KanbanBoardProps {
   employees: Employees[]
@@ -30,6 +37,13 @@ interface KanbanBoardProps {
 
 const SCROLL_SPEED = 15
 const SCROLL_THRESHOLD = 150
+
+const statusStyles: Record<Status, string> = {
+  todo: "text-red-500 bg-red-50 dark:bg-red-950/20",
+  inprogress: "text-yellow-500 bg-yellow-50 dark:bg-yellow-950/20",
+  completed: "text-green-500 bg-green-50 dark:bg-green-950/20",
+  unscheduled: "",
+} as const
 
 export default function KanbanBoard({
   employees,
@@ -313,9 +327,85 @@ export default function KanbanBoard({
                                               Space: {order.spaceRequried.toString()}
                                             </span>
                                           </div>
-                                          <AccordionTrigger className="text-right">
-                                            {/* AccordionTrigger content goes here */}
-                                          </AccordionTrigger>
+                                          <div className="flex items-center gap-2">
+                                            <DropdownMenu>
+                                              <DropdownMenuTrigger asChild>
+                                                <Button 
+                                                  variant="ghost" 
+                                                  size="sm"
+                                                  className={cn(
+                                                    "px-2 py-1 rounded-md",
+                                                    statusStyles[order.status as Status] || statusStyles.todo
+                                                  )}
+                                                >
+                                                  {order.status || 'todo'}
+                                                </Button>
+                                              </DropdownMenuTrigger>
+                                              <DropdownMenuContent align="end">
+                                                <DropdownMenuItem 
+                                                  className={statusStyles.todo}
+                                                  onClick={() => {
+                                                    const updatedOrder = { ...order, status: Status.todo }
+                                                    // Update the columns state with the new status
+                                                    const newColumns = { ...columns }
+                                                    const columnId = Object.keys(columns).find(id => 
+                                                      columns[id].jobOrders.some(jo => jo.id === order.id)
+                                                    )
+                                                    if (columnId) {
+                                                      newColumns[columnId].jobOrders = newColumns[columnId].jobOrders.map(jo =>
+                                                        jo.id === order.id ? updatedOrder : jo
+                                                      )
+                                                      setColumns(newColumns)
+                                                      onColumnsChange?.(newColumns)
+                                                    }
+                                                  }}
+                                                >
+                                                  To-do
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem 
+                                                  className={statusStyles.inprogress}
+                                                  onClick={() => {
+                                                    const updatedOrder = { ...order, status: Status.inprogress }
+                                                    const newColumns = { ...columns }
+                                                    const columnId = Object.keys(columns).find(id => 
+                                                      columns[id].jobOrders.some(jo => jo.id === order.id)
+                                                    )
+                                                    if (columnId) {
+                                                      newColumns[columnId].jobOrders = newColumns[columnId].jobOrders.map(jo =>
+                                                        jo.id === order.id ? updatedOrder : jo
+                                                      )
+                                                      setColumns(newColumns)
+                                                      onColumnsChange?.(newColumns)
+                                                    }
+                                                  }}
+                                                >
+                                                  In Progress
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem 
+                                                  className={statusStyles.completed}
+                                                  onClick={() => {
+                                                    const updatedOrder = { ...order, status: Status.completed }
+                                                    const newColumns = { ...columns }
+                                                    const columnId = Object.keys(columns).find(id => 
+                                                      columns[id].jobOrders.some(jo => jo.id === order.id)
+                                                    )
+                                                    if (columnId) {
+                                                      newColumns[columnId].jobOrders = newColumns[columnId].jobOrders.map(jo =>
+                                                        jo.id === order.id ? updatedOrder : jo
+                                                      )
+                                                      setColumns(newColumns)
+                                                      onColumnsChange?.(newColumns)
+                                                    }
+                                                  }}
+                                                >
+                                                  Completed
+                                                </DropdownMenuItem>
+                                              </DropdownMenuContent>
+                                            </DropdownMenu>
+                                            <AccordionTrigger className="text-right">
+                                              {/* AccordionTrigger content */}
+                                            </AccordionTrigger>
+                                          </div>
                                         </div>
                                         <AccordionContent>
                                           <div className="mt-2 space-y-2">

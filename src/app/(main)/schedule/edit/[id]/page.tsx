@@ -23,6 +23,7 @@ import { editSchedule, findSchedule, getEmployees } from "./action";
 import { SaveScheduleDialog } from "../../utils/save-schedule-dialog";
 import { LoadingDialog } from "@/components/LoadingDialog";
 import { DistanceDialog } from "@/app/(main)/schedule/utils/auto-sched-dialog";
+import { CreateMessage } from "@/app/(main)/updates/action";
 
 export default function SchedulesPage() {
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
@@ -338,6 +339,14 @@ export default function SchedulesPage() {
             title: "Success",
             description: `Successfully updated schedule #${scheduleData.id}`,
           });
+          const messageResult = await CreateMessage(`editted Schedule: ${scheduleData.name}`, selectedOrg!)
+          if (messageResult && messageResult.error) {
+            toast({
+              title: "Error",
+              description: `Error creating update message`,
+              variant: "destructive",
+            });
+          }
           router.push("/schedule");
         }
       } catch (err) {

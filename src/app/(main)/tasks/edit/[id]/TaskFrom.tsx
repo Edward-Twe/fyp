@@ -21,6 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tasks } from "@prisma/client";
 import { useToast } from "@/components/hooks/use-toast";
 import { useRouter } from "next/navigation";
+import { CreateMessage } from "@/app/(main)/updates/action";
 
 export default function EditTaskForm({ id }: { id: string }) {
   const [error, setError] = useState<string>();
@@ -103,6 +104,14 @@ export default function EditTaskForm({ id }: { id: string }) {
             title: "Success",
             description: `Successfully updated task #${values.id}`,
           });
+          const messageResult = await CreateMessage(`editted Task: ${values.task}`, selectedOrg!)
+          if (messageResult && messageResult.error) {
+            toast({
+              title: "Error",
+              description: `Error creating update message`,
+              variant: "destructive",
+            });
+          }
           router.push("/tasks");
         }
       } catch (err) {

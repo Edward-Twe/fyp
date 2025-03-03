@@ -31,6 +31,7 @@ import { useGoogleMaps } from "@/components/GoogleMapsProvider";
 import { editJobOrder, findJobOrder } from "./action";
 import { useToast } from "@/components/hooks/use-toast";
 import { useRouter } from "next/navigation";
+import { CreateMessage } from "@/app/(main)/updates/action";
 
 interface Task {
   id: string;
@@ -219,6 +220,14 @@ export default function JobOrderForm({ id }: { id: string }) {
             title: "Success",
             description: `Successfully updated job order #${values.id}`,
           });
+          const messageResult = await CreateMessage(`editted Job Order: #${values.orderNumber}`, selectedOrg!)
+          if (messageResult && messageResult.error) {
+            toast({
+              title: "Error",
+              description: `Error creating update message`,
+              variant: "destructive",
+            });
+          }
           router.push("/job-orders");
         }
       } catch (err) {

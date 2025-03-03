@@ -32,6 +32,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
+import { CreateMessage } from "../updates/action"
 
 export default function EmployeesPage() {
   const { selectedOrg } = useOrganization()
@@ -72,9 +73,17 @@ export default function EmployeesPage() {
     fetchEmployees()
   }, [selectedOrg, setEmployees])
 
-  const handleDeleteEmployee = async (employeeId: string) => {
+  const handleDeleteEmployee = async (employeeId: string, employeeName:string) => {
     const result = await deleteEmployee(employeeId)
     if (result.success) {
+      const messageResult = await CreateMessage(`deleted Employee: ${employeeName}`, selectedOrg!)
+          if (messageResult && messageResult.error) {
+            toast({
+              title: "Error",
+              description: `Error creating update message`,
+              variant: "destructive",
+            });
+          }
       toast({
         title: "Success",
         description: result.message,
@@ -201,7 +210,7 @@ export default function EmployeesPage() {
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleDeleteEmployee(employee.id)}>
+                          <AlertDialogAction onClick={() => handleDeleteEmployee(employee.id, employee.name)}>
                             Delete
                           </AlertDialogAction>
                         </AlertDialogFooter>

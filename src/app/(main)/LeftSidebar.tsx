@@ -253,7 +253,7 @@ function LeftSidebarContent({
               )}
             />
           </Button>
-          <h1 className="font-semibold">Dashboard</h1>
+          <h1 className="font-semibold capitalize">{window.location.pathname.split('/')[1] || 'Dashboard'}</h1>
           <div className="ml-auto mr-2">
             <UserButton />
           </div>

@@ -31,6 +31,7 @@ import { StandaloneSearchBox } from "@react-google-maps/api";
 import { useGoogleMaps } from "@/components/GoogleMapsProvider";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/hooks/use-toast";
+import { CreateMessage } from "../../updates/action";
 
 interface Task {
   id: string;
@@ -192,6 +193,14 @@ export default function JobOrderForm() {
             title: "Success",
             description: `Successfully created job order`,
           });
+          const messageResult = await CreateMessage(`created new Job Order: #${values.orderNumber}`, selectedOrg!)
+          if (messageResult && messageResult.error) {
+            toast({
+              title: "Error",
+              description: `Error creating update message`,
+              variant: "destructive",
+            });
+          }
           router.push("/job-orders");
         }
       } catch (err) {

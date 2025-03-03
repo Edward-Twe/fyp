@@ -28,6 +28,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { deleteTask } from "./delete/action";
 import { toast } from "@/components/hooks/use-toast";
 import { Input } from "@/components/ui/input";
+import { CreateMessage } from "../updates/action";
 
 export default function TasksPage() {
   // fetch the selected organization
@@ -64,13 +65,21 @@ export default function TasksPage() {
     fetchTasks();
   }, [selectedOrg]);
 
-  const handleDeleteTask = async (taskId: string) => {
+  const handleDeleteTask = async (taskId: string, taskName: string) => {
     const result = await deleteTask(taskId)
     if (result.success) {
       toast({
         title: "Success",
         description: result.message,
       })
+      const messageResult = await CreateMessage(`created new Employee: ${taskName}`, selectedOrg!)
+          if (messageResult && messageResult.error) {
+            toast({
+              title: "Error",
+              description: `Error creating update message`,
+              variant: "destructive",
+            });
+          }
       const updatedTasks = tasks.filter((task) => task.id !== taskId)
       setTasks(updatedTasks)
     } else {
@@ -173,7 +182,7 @@ export default function TasksPage() {
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleDeleteTask(task.id)}>
+                          <AlertDialogAction onClick={() => handleDeleteTask(task.id, task.task)}>
                             Delete
                           </AlertDialogAction>
                         </AlertDialogFooter>

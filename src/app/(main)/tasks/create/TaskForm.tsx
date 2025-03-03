@@ -20,6 +20,7 @@ import { useOrganization } from "@/app/contexts/OrganizationContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/hooks/use-toast";
+import { CreateMessage } from "../../updates/action";
 
 export default function TaskForm() {
   const [error, setError] = useState<string>();
@@ -67,6 +68,14 @@ export default function TaskForm() {
             title: "Success",
             description: `Successfully created task`,
           });
+          const messageResult = await CreateMessage(`created new Task: ${values.task}`, selectedOrg!)
+          if (messageResult && messageResult.error) {
+            toast({
+              title: "Error",
+              description: `Error creating update message`,
+              variant: "destructive",
+            });
+          }
           router.push("/tasks");
         }
       } catch (err) {

@@ -13,7 +13,7 @@ export async function editSchedule(
 ): Promise<{ error?: string; success?: boolean }> {
   const { user } = await validateRequest();
 
-  if (!user) throw Error("Unauthorized");
+  if (!user) return { error: "Unauthorized" };
 
   try {
     const {
@@ -78,19 +78,17 @@ export async function editSchedule(
         // Skip the 'jobOrders' column as it contains unassigned jobs
         if (columnId === "jobOrders") continue;
 
-        // Update all job orders in this column
-        await tx.jobOrders.updateMany({
-          where: {
-            id: {
-              in: column.jobOrders.map((job) => job.id),
+        // Update job orders
+        for (const job of column.jobOrders) {
+          await tx.jobOrders.update({
+            where: { id: job.id },
+            data: {
+              schedulesId: id,
+              employeeId: columnId,
+              status: job.status,
             },
-          },
-          data: {
-            schedulesId: id,
-            employeeId: columnId, // columnId is the employeeId
-            status: "todo",
-          },
-        });
+          });
+        }
       }
     });
 

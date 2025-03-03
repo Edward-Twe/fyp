@@ -23,6 +23,7 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/components/hooks/use-toast";
 import { LoadingDialog } from "@/components/LoadingDialog";
 import { DistanceDialog } from "../utils/auto-sched-dialog";
+import { CreateMessage } from "../../updates/action";
 
 export default function Schedules() {
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
@@ -263,6 +264,14 @@ export default function Schedules() {
             title: "Success",
             description: `Successfully created schedule`,
           });
+          const messageResult = await CreateMessage(`created new Schedule: ${scheduleData.name}`, selectedOrg!)
+          if (messageResult && messageResult.error) {
+            toast({
+              title: "Error",
+              description: `Error creating update message`,
+              variant: "destructive",
+            });
+          }
           router.push("/schedule");
         }
       } catch (err) {

@@ -46,17 +46,18 @@ model Session {
 }
 
 model Organization {
-  id        String      @id @default(cuid())
-  name      String
-  email     String?
-  location  String?
-  orgPic    String?
-  ownerId   String
-  user      User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  Employees Employees[]
-  Tasks     Tasks[]
-  JobOrders JobOrders[]
-  Schedules Schedules[]
+  id             String           @id @default(cuid())
+  name           String
+  email          String?
+  location       String?
+  orgPic         String?
+  ownerId        String
+  user           User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  Employees      Employees[]
+  Tasks          Tasks[]
+  JobOrders      JobOrders[]
+  Schedules      Schedules[]
+  updateMessages updateMessages[]
 
   @@map("organizations")
 }
@@ -101,6 +102,7 @@ model Tasks {
 enum Status {
   unscheduled
   todo
+  inprogress
   completed
 }
 
@@ -180,4 +182,15 @@ model EmployeeSchedules {
   schedule Schedules @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
 
   @@map("employee_schedules")
+}
+
+model updateMessages {
+  id        String   @id @default(cuid())
+  message   String
+  updatedAt DateTime @default(now())
+  orgId     String
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@map("update_messages")
 }

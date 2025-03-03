@@ -40,6 +40,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { CreateMessage } from "../updates/action";
 
 type JobOrderWithTasks = JobOrders & {
   JobOrderTask: (JobOrderTask & {
@@ -117,13 +118,21 @@ export default function JobOrdersPage() {
     setFilteredJobOrders(filtered);
   }, [jobOrders, searchQuery, dateRange, statusFilter]);
 
-  const handleDeleteJobOrder = async (jobOrderId: string) => {
+  const handleDeleteJobOrder = async (jobOrderId: string, orderNumber: string) => {
     const result = await deleteJobOrder(jobOrderId);
     if (result.success) {
       toast({
         title: "Success",
         description: result.message,
       });
+      const messageResult = await CreateMessage(`deleted Job Order: #${orderNumber}`, selectedOrg!)
+          if (messageResult && messageResult.error) {
+            toast({
+              title: "Error",
+              description: `Error creating update message`,
+              variant: "destructive",
+            });
+          }
       // Refresh the job order list
       const updatedJobOrders = jobOrders.filter((jo) => jo.id !== jobOrderId);
       setJobOrders(updatedJobOrders);
@@ -254,7 +263,7 @@ export default function JobOrdersPage() {
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
                             <AlertDialogAction
-                              onClick={() => handleDeleteJobOrder(jobOrder.id)}
+                              onClick={() => handleDeleteJobOrder(jobOrder.id, jobOrder.orderNumber)}
                             >
                               Delete
                             </AlertDialogAction>

@@ -3,36 +3,23 @@
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 
-export async function loadSchedules(orgId: string | undefined) {
+export async function loadUpdates(orgId: string | undefined) {
   const { user } = await validateRequest();
 
   if (!user || !orgId) throw Error("Unauthorized");
 
   try {
-    const schedules = await prisma.schedules.findMany({
+    const updates = await prisma.updateMessages.findMany({
       where: {
         orgId: orgId,
       },
-      include: {
-        jobOrder: {
-          include: {
-            JobOrderTask: {
-              include: {
-                task: true
-              }
-            }
-          }
-        }
-      }
     });
 
-    if (schedules.length === 0) {
+    if (updates.length === 0) {
       return [];
     }
 
-    console.log(schedules);
-
-    return schedules;
+    return updates;
   } catch (error) {
     console.error(error);
     return {

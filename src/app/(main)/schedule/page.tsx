@@ -41,6 +41,7 @@ import { Input } from "@/components/ui/input";
 import { DateRangePicker } from "@/components/DateRangePicker";
 import { DateRange } from "react-day-picker";
 import { isWithinInterval, endOfDay } from "date-fns";
+import { CreateMessage } from "../updates/action";
 
 export default function SchedulesPage() {
   // fetch the selected organization
@@ -102,13 +103,21 @@ export default function SchedulesPage() {
     setFilteredSchedules(filtered);
   }, [schedules, searchQuery, dateRange]);
 
-  const handleDeleteSchedule = async (scheduleId: string) => {
+  const handleDeleteSchedule = async (scheduleId: string, scheduleName: string) => {
     const result = await deleteSchedule(scheduleId);
     if (result.success) {
       toast({
         title: "Success",
         description: result.message,
       });
+      const messageResult = await CreateMessage(`deleted Schedule: ${scheduleName}`, selectedOrg!)
+          if (messageResult && messageResult.error) {
+            toast({
+              title: "Error",
+              description: `Error creating update message`,
+              variant: "destructive",
+            });
+          }
       // Refresh the schedules list
       const updatedSchedules = schedules.filter((s) => s.id !== scheduleId);
       setSchedules(updatedSchedules);
@@ -224,7 +233,7 @@ export default function SchedulesPage() {
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancel</AlertDialogCancel>
                           <AlertDialogAction
-                            onClick={() => handleDeleteSchedule(schedule.id)}
+                            onClick={() => handleDeleteSchedule(schedule.id, schedule.name)}
                             className="bg-red-600 hover:bg-red-700"
                           >
                             Delete

@@ -22,6 +22,7 @@ import { useToast } from "@/components/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { StandaloneSearchBox } from "@react-google-maps/api";
 import { useGoogleMaps } from "@/components/GoogleMapsProvider";
+import { CreateMessage } from "@/app/(main)/updates/action";
 
 export default function EmpForm({ id }: { id: string }) {
   const [error, setError] = useState<string>();
@@ -121,6 +122,14 @@ export default function EmpForm({ id }: { id: string }) {
             title: "Success",
             description: `Successfully updated employee #${values.id}`,
           });
+          const messageResult = await CreateMessage(`editted Employee: ${values.name}`, selectedOrg!)
+          if (messageResult && messageResult.error) {
+            toast({
+              title: "Error",
+              description: `Error creating update message`,
+              variant: "destructive",
+            });
+          }
           router.push("/employees");
         }
       } catch (err) {

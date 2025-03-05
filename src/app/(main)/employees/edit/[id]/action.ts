@@ -3,7 +3,6 @@
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { UpdateEmployeeValues, updateEmployeeSchema } from "@/lib/validation";
-import { Roles } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 export async function findUserByEmail(email: string) {

@@ -11,7 +11,16 @@ export async function loadOrganizations() {
   try {
     const organizations = await prisma.organization.findMany({
       where: {
-        ownerId: user?.id,
+        OR: [
+          { ownerId: user.id },
+          {
+            Employees: {
+              some: {
+                userId: user.id
+              }
+            }
+          }
+        ]
       },
     });
 

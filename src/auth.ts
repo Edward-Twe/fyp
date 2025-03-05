@@ -1,3 +1,4 @@
+import { OrganizationRole } from './../node_modules/.prisma/client/index.d';
 import { PrismaAdapter } from "@lucia-auth/adapter-prisma"
 import prisma from "./lib/prisma"
 import { Lucia, Session, User } from "lucia"
@@ -25,7 +26,8 @@ export const lucia = new Lucia(adapter, {
             displayName: databaseUserAttributes.displayName,
             profilePic: databaseUserAttributes.profilePic,
             googleId: databaseUserAttributes.googleId,
-            email: databaseUserAttributes.email,
+            email: databaseUserAttributes.email, 
+            Role: databaseUserAttributes.Role,
         };
     },
 });
@@ -46,6 +48,7 @@ interface DatabaseUserAttributes {
     profilePic: string|null;
     googleId: string|null;
     email: string|null;
+    Role: OrganizationRole[]|[]
 }
 
 // to validate and store the validated result. so no multiple validation request is required for multiple actions.

@@ -60,8 +60,18 @@ export const employeeSchema = z.object({
   area: requiredString, 
   areaLat: z.number().min(-90).max(90), 
   areaLong: z.number().min(-180).max(180), 
-  orgId: requiredString
+  orgId: requiredString, 
+  role: z.enum(['user', 'admin']).optional()
 
+}).refine((data) => {
+  // If email exists, role must be provided
+  if (data.email && !data.role) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Role is required when email is provided",
+  path: ["role"]
 });
 
 export type EmployeeValues = z.infer<typeof employeeSchema>;
@@ -77,8 +87,17 @@ export const updateEmployeeSchema = z.object({
   area: requiredString, 
   areaLat: z.number().min(-90).max(90),
   areaLong: z.number().min(-180).max(180), 
-  orgId: requiredString
-
+  orgId: requiredString, 
+  role: z.enum(['user', 'admin']).optional()
+}).refine((data) => {
+  // If email exists, role must be provided
+  if (data.email && !data.role) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Role is required when email is provided",
+  path: ["role"]
 });
 
 export type UpdateEmployeeValues = z.infer<typeof updateEmployeeSchema>;

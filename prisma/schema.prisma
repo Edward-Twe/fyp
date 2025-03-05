@@ -29,11 +29,32 @@ model User {
   sessions      Session[]
   organizations Organization[]
 
-  createdAt DateTime    @default(now())
+  createdAt DateTime           @default(now())
   Employees Employees[]
+  Role      OrganizationRole[]
 
   // table name in database
   @@map("users")
+}
+
+enum Roles {
+  owner
+  admin
+  user
+}
+
+model OrganizationRole {
+  id     String @id @default(cuid())
+  userId String
+  orgId  String
+  role   Roles
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  //one user cannot have multiple role in one org
+  @@unique([userId, orgId])
+  @@map("organization_role")
 }
 
 model Session {
@@ -46,18 +67,19 @@ model Session {
 }
 
 model Organization {
-  id             String           @id @default(cuid())
+  id             String             @id @default(cuid())
   name           String
   email          String?
   location       String?
   orgPic         String?
   ownerId        String
-  user           User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  user           User               @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   Employees      Employees[]
   Tasks          Tasks[]
   JobOrders      JobOrders[]
   Schedules      Schedules[]
   updateMessages updateMessages[]
+  Role           OrganizationRole[]
 
   @@map("organizations")
 }
@@ -72,6 +94,8 @@ model Employees {
   space             Decimal
   orgId             String
   userId            String?
+  lastLat           Decimal?
+  lastLong          Decimal?
   organization      Organization        @relation(fields: [orgId], references: [id], onDelete: Cascade)
   user              User?               @relation(fields: [userId], references: [id], onDelete: Cascade)
   JobOrders         JobOrders[]

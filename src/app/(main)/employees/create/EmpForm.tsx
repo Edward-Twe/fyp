@@ -22,6 +22,8 @@ import { useToast } from "@/components/hooks/use-toast";
 import { StandaloneSearchBox } from "@react-google-maps/api";
 import { useGoogleMaps } from "@/components/GoogleMapsProvider";
 import { CreateMessage } from "../../updates/action";
+import { checkExistingEmployeeInOrg, findUserByEmail } from "../edit/[id]/action";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function EmpForm() {
   const [error, setError] = useState<string>();
@@ -55,10 +57,43 @@ export default function EmpForm() {
     }
   };
 
-  const onSubmit: SubmitHandler<EmployeeValues> = (values) => {
+  const onSubmit: SubmitHandler<EmployeeValues> = async (values) => {
     setError(undefined);
+
+    // Validate form before proceeding
+    const validationResult = await form.trigger();
+    if (!validationResult) {
+      return; // Stop if validation fails
+    }
+
     startTransition(async () => {
       try {
+        //check if email exists
+        if (values.email) {
+          const existingUser = await findUserByEmail(values.email);
+          if (!existingUser) {
+            toast({
+              title: "Error",
+              description:
+                "Email is not registered. Please enter a registered email to invite the user.",
+              variant: "destructive",
+            });
+            return;
+          }
+
+          const emailOcupied = await checkExistingEmployeeInOrg(values.email, values.orgId);
+
+          if(emailOcupied) {
+            toast({
+              title: "Error",
+              description:
+                "Email is already used by other employee in this organization.",
+              variant: "destructive",
+            });
+            return;
+          }
+        }
+
         const result = await createEmployee(values);
         if (result && result.error) {
           toast({
@@ -129,10 +164,47 @@ export default function EmpForm() {
                     <Input
                       placeholder="Enter employee email"
                       {...field}
-                      value={field.value ?? ""}
+                      value={field.value ?? ""} 
+                      onChange={(e) => {
+                        field.onChange(e);
+                        if (!e.target.value) {
+                          // Clear role when email is empty
+                          form.setValue("role", undefined);
+                        }
+                      }}
                     />
                   </FormControl>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          <div className="space-y-2">
+            <FormField
+              control={form.control}
+              name="role"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Role</FormLabel>
+                  <Select
+                    disabled={!form.watch("email")}
+                    onValueChange={field.onChange}
+                    value={field.value}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger className={form.formState.errors.role ? "border-red-500" : ""}>
+                        <SelectValue placeholder="Select a role" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="user">User</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage>
+                    {form.formState.errors.role && form.formState.errors.role.message}
+                  </FormMessage>
                 </FormItem>
               )}
             />

@@ -4,7 +4,7 @@ import { updateEmployeeSchema, UpdateEmployeeValues } from "@/lib/validation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState, useTransition, useRef } from "react";
 import { SubmitHandler, useForm } from "react-hook-form";
-import { editEmployee, findEmployee } from "./action";
+import { checkExistingEmployeeInOrg, editEmployee, findEmployee, findUserByEmail } from "./action";
 import {
   Form,
   FormControl,
@@ -23,6 +23,13 @@ import { useRouter } from "next/navigation";
 import { StandaloneSearchBox } from "@react-google-maps/api";
 import { useGoogleMaps } from "@/components/GoogleMapsProvider";
 import { CreateMessage } from "@/app/(main)/updates/action";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 export default function EmpForm({ id }: { id: string }) {
   const [error, setError] = useState<string>();
@@ -105,16 +112,48 @@ export default function EmpForm({ id }: { id: string }) {
     return <h1>Employee not Found</h1>;
   }
 
-  const onSubmit: SubmitHandler<UpdateEmployeeValues> = (values) => {
+  const onSubmit: SubmitHandler<UpdateEmployeeValues> = async (values) => {
     setError(undefined);
-    console.log("Form submitted", values);
+    
+    // Validate form before proceeding
+    const validationResult = await form.trigger();
+    if (!validationResult) {
+      return; // Stop if validation fails
+    }
+
     startTransition(async () => {
       try {
+        //check if email exists
+        if (values.email) {
+          const existingUser = await findUserByEmail(values.email);
+          if (!existingUser) {
+            toast({
+              title: "Error",
+              description:
+                "Email is not registered. Please enter a registered email to invite the user.",
+              variant: "destructive",
+            });
+            return;
+          }
+
+          const emailOcupied = await checkExistingEmployeeInOrg(values.email, values.orgId, values.id);
+
+          if(emailOcupied) {
+            toast({
+              title: "Error",
+              description:
+                "Email is already used by other employee in this organization.",
+              variant: "destructive",
+            });
+            return;
+          }
+        }
+
         const result = await editEmployee(values);
         if (result && result.error) {
           toast({
             title: "Error",
-            description: `Error updating employee #${values.id}`,
+            description: result.error,
             variant: "destructive",
           });
         } else {
@@ -122,7 +161,10 @@ export default function EmpForm({ id }: { id: string }) {
             title: "Success",
             description: `Successfully updated employee #${values.id}`,
           });
-          const messageResult = await CreateMessage(`editted Employee: ${values.name}`, selectedOrg!)
+          const messageResult = await CreateMessage(
+            `editted Employee: ${values.name}`,
+            selectedOrg!,
+          );
           if (messageResult && messageResult.error) {
             toast({
               title: "Error",
@@ -181,9 +223,46 @@ export default function EmpForm({ id }: { id: string }) {
                       placeholder="Enter employee email"
                       {...field}
                       value={field.value ?? ""}
+                      onChange={(e) => {
+                        field.onChange(e);
+                        if (!e.target.value) {
+                          // Clear role when email is empty
+                          form.setValue("role", undefined);
+                        }
+                      }}
                     />
                   </FormControl>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          <div className="space-y-2">
+            <FormField
+              control={form.control}
+              name="role"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Role</FormLabel>
+                  <Select
+                    disabled={!form.watch("email")}
+                    onValueChange={field.onChange}
+                    value={field.value}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger className={form.formState.errors.role ? "border-red-500" : ""}>
+                        <SelectValue placeholder="Select a role" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="user">User</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage>
+                    {form.formState.errors.role && form.formState.errors.role.message}
+                  </FormMessage>
                 </FormItem>
               )}
             />
@@ -203,7 +282,11 @@ export default function EmpForm({ id }: { id: string }) {
                         }}
                         onPlacesChanged={handlePlaceChanged}
                       >
-                        <Input {...field} ref={addressInputRef} value={field.value ?? ""}/>
+                        <Input
+                          {...field}
+                          ref={addressInputRef}
+                          value={field.value ?? ""}
+                        />
                       </StandaloneSearchBox>
                     ) : (
                       <Input
@@ -219,10 +302,10 @@ export default function EmpForm({ id }: { id: string }) {
               )}
             />
             {loadError && (
-            <FormMessage>
-              Failed to load Google Maps. Please try again later.
-            </FormMessage>
-          )}
+              <FormMessage>
+                Failed to load Google Maps. Please try again later.
+              </FormMessage>
+            )}
           </div>
           <div className="space-y-2">
             <FormField

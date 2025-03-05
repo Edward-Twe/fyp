@@ -223,6 +223,10 @@ export default function Dashboard() {
     }
   }, [schedules, dateRange, selectedPreset])
 
+  if (!selectedOrg) {
+    return <h1>Please Select or Create an Organization</h1>
+  }
+
   if (isLoading) {
     return <h1>Loading...</h1>
   }

@@ -23,6 +23,9 @@ import { Organization } from "@prisma/client";
 import defaultLogo from "@/assets/organization.png";
 import { OrganizationProvider, useOrganization } from "../contexts/OrganizationContext";
 import { redirect } from "next/navigation";
+import { useSession } from "./SessionProvider"
+import { validateRole } from "@/roleAuth"
+import { Roles } from "@prisma/client"
 
 function useMediaQuery(query: string) {
   const [matches, setMatches] = React.useState(false);
@@ -71,6 +74,8 @@ function LeftSidebarContent({
   const isSmallScreen = useMediaQuery("(max-width: 768px)");
   const [organizations, setOrganizations] = React.useState<Organization[]>([]);
   const [error, setError] = React.useState<string | null>(null);
+  const [userRole, setUserRole] = React.useState<Roles | null>(null)
+  const { user } = useSession()
 
   const fetchOrganizations = async () => {
     const result = await loadOrganizations();
@@ -97,6 +102,63 @@ function LeftSidebarContent({
     window.addEventListener('popstate', handleRouteChange);
     return () => window.removeEventListener('popstate', handleRouteChange);
   }, []);
+
+  React.useEffect(() => {
+    async function fetchUserRole() {
+      if (selectedOrg && user) {
+        const role = await validateRole(user, selectedOrg.id)
+        setUserRole(role)
+      } else {
+        setUserRole(null)
+      }
+    }
+    fetchUserRole()
+  }, [selectedOrg, user])
+
+  const navItems = [
+    {
+      icon: Home,
+      label: "Home",
+      href: "/",
+      disabled: false,
+      requiresAdmin: false
+    },
+    {
+      icon: Calendar,
+      label: "Schedule",
+      href: "/schedule",
+      disabled: selectedOrg == null,
+      requiresAdmin: false
+    },
+    {
+      icon: Package,
+      label: "Tasks",
+      href: "/tasks",
+      disabled: selectedOrg == null,
+      requiresAdmin: true
+    },
+    {
+      icon: Users,
+      label: "Employees",
+      href: "/employees",
+      disabled: selectedOrg == null,
+      requiresAdmin: true
+    },
+    {
+      icon: CheckSquare,
+      label: "Job Orders",
+      href: "/job-orders",
+      disabled: selectedOrg == null,
+      requiresAdmin: true
+    },
+    {
+      icon: Settings,
+      label: "Settings",
+      href: "/settings",
+      disabled: false,
+      requiresAdmin: false
+    }
+  ]
 
   return (
     <div className="relative flex h-screen overflow-hidden bg-card">
@@ -181,48 +243,18 @@ function LeftSidebarContent({
         </div>
 
         <nav className="flex flex-col gap-2">
-          <NavItem 
-            collapsed={collapsed} 
-            icon={Home} 
-            label="Home" 
-            href="/" 
-            disabled={false}
-          />
-          <NavItem
-            collapsed={collapsed}
-            icon={Calendar}
-            label="Schedule"
-            href="/schedule"
-            disabled={selectedOrg == null}
-          />
-          <NavItem
-            collapsed={collapsed}
-            icon={Package}
-            label="Tasks"
-            href="/tasks" 
-            disabled={selectedOrg == null}
-          />
-          <NavItem
-            collapsed={collapsed}
-            icon={Users}
-            label="Employees"
-            href="/employees" 
-            disabled={selectedOrg == null}
-          />
-          <NavItem
-            collapsed={collapsed}
-            icon={CheckSquare}
-            label="Job Orders"
-            href="/job-orders" 
-            disabled={selectedOrg == null}
-          />
-          {/* <NavItem
-            collapsed={collapsed}
-            icon={BarChart3}
-            label="Reports"
-            href="/reports" 
-            disabled={selectedOrg == null}
-          /> */}
+          {navItems.map((item) => (
+            (!item.requiresAdmin || (userRole === 'admin' || userRole === 'owner')) && (
+              <NavItem
+                key={item.label}
+                collapsed={collapsed}
+                icon={item.icon}
+                label={item.label}
+                href={item.href}
+                disabled={item.disabled}
+              />
+            )
+          ))}
         </nav>
 
         <div className="mt-auto">

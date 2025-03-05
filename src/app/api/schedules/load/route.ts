@@ -8,6 +8,8 @@ export async function GET(req: Request) {
     const employeeId = searchParams.get('employeeId');
     const orgId = searchParams.get('orgId');
 
+    console.log('Query Parameters:', { employeeId, orgId });
+
     if (!employeeId || !orgId) {
       return new NextResponse('Missing required parameters', { status: 400 });
     }

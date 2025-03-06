@@ -77,6 +77,18 @@ export async function createSchedule(
             },
           });
         }
+
+        // Create or update EmployeeSchedules entry
+        await tx.employeeSchedules.create({
+          data: {
+            employeeId: columnId,
+            scheduleId: schedule.id,
+            totalOrders: column.jobOrders.length,
+            totalDistance: column.totalDistance ?? 0,
+            totalTime: column.totalTime ?? 0,
+            totalSpace: column.totalSpace ?? 0,
+          },
+        });
       }
     });
 

@@ -6,7 +6,7 @@ import {
   DepartureDialog,
   type DepartureInfo,
 } from "@/components/DepartureDialog";
-import type { Employees } from "@prisma/client";
+import type { Employees, Roles } from "@prisma/client";
 import { startTransition, useEffect, useState } from "react";
 import { loadEmployees } from "@/app/(main)/employees/loadEmployees";
 import { useOrganization } from "@/app/contexts/OrganizationContext";
@@ -24,8 +24,13 @@ import { SaveScheduleDialog } from "../../utils/save-schedule-dialog";
 import { LoadingDialog } from "@/components/LoadingDialog";
 import { DistanceDialog } from "@/app/(main)/schedule/utils/auto-sched-dialog";
 import { CreateMessage } from "@/app/(main)/updates/action";
+import { calculateTotalDistanceAndTime, calculateTotalSpace } from "../../utils/calculateRoute";
+import { validateRole } from "@/roleAuth";
+import { useSession } from "@/app/(main)/SessionProvider";
+import { findEmployeebyUserId } from "../../loadSchedules";
 
 export default function SchedulesPage() {
+  const { user } = useSession();
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const { selectedOrg } = useOrganization();
   const [employees, setEmployees] = useState<Employees[]>([]);
@@ -50,8 +55,15 @@ export default function SchedulesPage() {
   const [maxDistance, setMaxDistance] = useState<number>(0);
   const [tempDistance, setTempDistance] = useState<string>("");
   const [isSaving, setIsSaving] = useState(false);
+  const [userRole, setUserRole] = useState<Roles | null>(null);
 
   useEffect(() => {
+    if (!id) {
+      setError("No ID provided.");
+      setIsLoading(false);
+      return;
+    }
+
     async function fetchEmpJob() {
       if (!selectedOrg) {
         setIsLoading(false);
@@ -81,7 +93,98 @@ export default function SchedulesPage() {
     }
 
     fetchEmpJob();
-  }, [selectedOrg]);
+
+    const getSchedule = async () => {
+      if (!selectedOrg) {
+        setIsLoading(false);
+        setError("Select an Organization");
+        return;
+      }
+      try {
+        const fetchedSchedule = await findSchedule(id as string);
+        let scheduledEmployees = await getEmployees(id as string);
+
+        if (!fetchedSchedule || !scheduledEmployees) {
+          setError("Schedule doesn't exist.");
+        } else {
+          let scheduledJobOrders = fetchedSchedule.jobOrder;
+          setDeparture({
+            datetime: fetchedSchedule.departTime,
+            location: {
+              address: fetchedSchedule.departAddress,
+              city: fetchedSchedule.departCity,
+              postCode: fetchedSchedule.departPostCode,
+              state: fetchedSchedule.departState,
+              country: fetchedSchedule.departCountry,
+              latitude: Number(fetchedSchedule.departLatitude),
+              longitude: Number(fetchedSchedule.departLongitude),
+              placeId: fetchedSchedule.departPlaceId,
+            },
+          });
+
+          if(userRole !== "owner" && userRole !== "admin"){
+            const employeeId = await findEmployeebyUserId(user?.id, selectedOrg.id);
+            scheduledEmployees = scheduledEmployees.filter(emp => emp.id === employeeId?.id);
+            scheduledJobOrders = scheduledJobOrders.filter(job => job.employeeId === employeeId?.id);
+          }
+
+          setSelectedEmployees(scheduledEmployees);
+          setSelectedJobOrders(scheduledJobOrders);
+
+          const newColumns: Columns = {
+            jobOrders: {
+              id: "jobOrders",
+              title: "Job Orders",
+              jobOrders: [],
+            },
+          };
+
+          fetchedSchedule.jobOrder.forEach((jo) => {
+            const employee = jo.scheduledEmp;
+
+            if (employee) {
+              if (!newColumns[employee.id]) {
+                newColumns[employee.id] = {
+                  id: employee.id,
+                  title: employee.name,
+                  jobOrders: [],
+                };
+              }
+
+              newColumns[employee.id].jobOrders.push(jo);
+            } else {
+              newColumns.jobOrders.jobOrders.push(jo);
+            }
+          });
+
+          Object.values(newColumns).forEach((column) => {
+            column.jobOrders.sort(
+              (a, b) => (a.scheduledOrder || 0) - (b.scheduledOrder || 0),
+            );
+          });
+
+          setColumns(newColumns);
+          setScheduleName(fetchedSchedule.name);
+        }
+      } catch (err) {
+        console.error("Error during fetch:", err);
+        setError("Failed to fetch job order");
+      }
+    };
+
+    getSchedule();
+  }, [selectedOrg, id, userRole, user]);
+
+  useEffect(() => {
+    async function fetchUserRole() {
+      if (!selectedOrg) return;
+
+      const role = await validateRole(user, selectedOrg.id);
+      setUserRole(role);
+    }
+
+    fetchUserRole();
+  }, [selectedOrg, user]);
 
   const getValidDateString = (
     date: Date | string | null | undefined,
@@ -209,83 +312,6 @@ export default function SchedulesPage() {
     }
   };
 
-  useEffect(() => {
-    if (!id) {
-      setError("No ID provided.");
-      setIsLoading(false);
-      return;
-    }
-
-    const getSchedule = async () => {
-      try {
-        const fetchedSchedule = await findSchedule(id as string);
-        const scheduledEmployees = await getEmployees(id as string);
-
-        if (!fetchedSchedule || !scheduledEmployees) {
-          setError("Schedule doesn't exist.");
-        } else {
-          const scheduledJobOrders = fetchedSchedule.jobOrder;
-          setDeparture({
-            datetime: fetchedSchedule.departTime,
-            location: {
-              address: fetchedSchedule.departAddress,
-              city: fetchedSchedule.departCity,
-              postCode: fetchedSchedule.departPostCode,
-              state: fetchedSchedule.departState,
-              country: fetchedSchedule.departCountry,
-              latitude: Number(fetchedSchedule.departLatitude),
-              longitude: Number(fetchedSchedule.departLongitude),
-              placeId: fetchedSchedule.departPlaceId,
-            },
-          });
-
-          setSelectedEmployees(scheduledEmployees);
-          setSelectedJobOrders(scheduledJobOrders);
-
-          const newColumns: Columns = {
-            jobOrders: {
-              id: "jobOrders",
-              title: "Job Orders",
-              jobOrders: [],
-            },
-          };
-
-          fetchedSchedule.jobOrder.forEach((jo) => {
-            const employee = jo.scheduledEmp;
-
-            if (employee) {
-              if (!newColumns[employee.id]) {
-                newColumns[employee.id] = {
-                  id: employee.id,
-                  title: employee.name,
-                  jobOrders: [],
-                };
-              }
-
-              newColumns[employee.id].jobOrders.push(jo);
-            } else {
-              newColumns.jobOrders.jobOrders.push(jo);
-            }
-          });
-
-          Object.values(newColumns).forEach((column) => {
-            column.jobOrders.sort(
-              (a, b) => (a.scheduledOrder || 0) - (b.scheduledOrder || 0),
-            );
-          });
-
-          setColumns(newColumns);
-          setScheduleName(fetchedSchedule.name);
-        }
-      } catch (err) {
-        console.error("Error during fetch:", err);
-        setError("Failed to fetch job order");
-      }
-    };
-
-    getSchedule();
-  }, [selectedOrg, id]);
-
   async function handleSave(name: string) {
     if (!departure || !selectedOrg) {
       setError("Missing required information");
@@ -309,6 +335,24 @@ export default function SchedulesPage() {
       return;
     }
 
+    // Calculate total distance, time, and space for each column
+    const updatedColumns: Columns = { ...columns };
+    for (const columnId in updatedColumns) {
+      const column = updatedColumns[columnId];
+      if (columnId !== "jobOrders" && column.jobOrders.length > 0) {
+        const { totalDistance, totalTime } = await calculateTotalDistanceAndTime(column.jobOrders, departure);
+        const totalSpace = await calculateTotalSpace(column.jobOrders);
+        
+
+        // Update the column with calculated values
+        column.totalDistance = totalDistance ?? 0;
+        column.totalTime = totalTime ?? 0;
+        column.totalSpace = Number(totalSpace) ?? 0;
+        column.totalOrders = column.jobOrders.length;
+      }
+    }
+
+    // Prepare schedule data
     const scheduleData: UpdateScheduleValues = {
       id: id as string,
       name,
@@ -323,15 +367,21 @@ export default function SchedulesPage() {
       departPlaceId: departure.location.placeId,
     };
 
+    // Validate that scheduleData and updatedColumns are not null
+    if (!scheduleData || !updatedColumns) {
+      setError("Invalid data: scheduleData or updatedColumns is null");
+      return;
+    }
+
     setError(null);
     setIsSaving(true);
     startTransition(async () => {
       try {
-        const result = await editSchedule(scheduleData, columns);
+        const result = await editSchedule(scheduleData, updatedColumns);
         if (result && result.error) {
           toast({
             title: "Error",
-            description: `Error updated schedule #${scheduleData.id}`,
+            description: `Error updating schedule #${scheduleData.id}`,
             variant: "destructive",
           });
         } else {
@@ -339,7 +389,7 @@ export default function SchedulesPage() {
             title: "Success",
             description: `Successfully updated schedule #${scheduleData.id}`,
           });
-          const messageResult = await CreateMessage(`editted Schedule: ${scheduleData.name}`, selectedOrg!)
+          const messageResult = await CreateMessage(`edited Schedule: ${scheduleData.name}`, selectedOrg!);
           if (messageResult && messageResult.error) {
             toast({
               title: "Error",
@@ -350,7 +400,7 @@ export default function SchedulesPage() {
           router.push("/schedule");
         }
       } catch (err) {
-        console.error("Error creating schedule:", err);
+        console.error("Error updating schedule:", err);
         setError("An unexpected error occurred. Please try again.");
       } finally {
         setIsSaving(false);
@@ -413,57 +463,61 @@ export default function SchedulesPage() {
       <ErrorAlert error={error} onClose={() => setError(null)} />
       <div className="flex-shrink-0 space-y-4 p-4 pb-0">
         <div className="flex gap-4">
-          <SelectionDialog
-            title="Employees"
-            items={employees}
-            selectedItems={selectedEmployees}
-            getItemId={(employee) => employee.id}
-            getItemLabel={(employee) => `${employee.name}`}
-            onSelectionChange={(newSelectedEmployees) => {
-              setSelectedEmployees(newSelectedEmployees);
-            }}
-          />
-          <SelectionDialog
-            title="Job Orders"
-            items={jobOrders}
-            selectedItems={selectedJobOrders}
-            getItemId={(jobOrder) => jobOrder.id}
-            getItemLabel={(jobOrder) => jobOrder.orderNumber}
-            getItemDate={(jobOrder) => getValidDateString(jobOrder.createdAt)}
-            getItemStatus={(jobOrder) => jobOrder.status}
-            onSelectionChange={(newSelectedJobOrders) => {
-              setSelectedJobOrders(newSelectedJobOrders);
-            }}
-          />
-          <DepartureDialog
-            departure={departure}
-            onDepartureChange={setDeparture}
-          />
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => {
-              setTempDistance(maxDistance.toString());
-              setIsDistanceDialogOpen(true);
-            }}
-          >
-            AutoSched
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setIsSaveDialogOpen(true)}
-            disabled={
-              !departure ||
-              !selectedOrg ||
-              !Object.entries(columns).some(
-                ([columnId, column]) =>
-                  columnId !== "jobOrders" && column.jobOrders.length > 0,
-              )
-            }
-          >
-            Save
-          </Button>
+          {userRole === "owner" || userRole === "admin" ? (
+            <>
+              <SelectionDialog
+                title="Employees"
+                items={employees}
+                selectedItems={selectedEmployees}
+                getItemId={(employee) => employee.id}
+                getItemLabel={(employee) => `${employee.name}`}
+                onSelectionChange={(newSelectedEmployees) => {
+                  setSelectedEmployees(newSelectedEmployees);
+                }}
+              />
+              <SelectionDialog
+                title="Job Orders"
+                items={jobOrders}
+                selectedItems={selectedJobOrders}
+                getItemId={(jobOrder) => jobOrder.id}
+                getItemLabel={(jobOrder) => jobOrder.orderNumber}
+                getItemDate={(jobOrder) => getValidDateString(jobOrder.createdAt)}
+                getItemStatus={(jobOrder) => jobOrder.status}
+                onSelectionChange={(newSelectedJobOrders) => {
+                  setSelectedJobOrders(newSelectedJobOrders);
+                }}
+              />
+              <DepartureDialog
+                departure={departure}
+                onDepartureChange={setDeparture}
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setTempDistance(maxDistance.toString());
+                  setIsDistanceDialogOpen(true);
+                }}
+              >
+                AutoSched
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setIsSaveDialogOpen(true)}
+                disabled={
+                  !departure ||
+                  !selectedOrg ||
+                  !Object.entries(columns).some(
+                    ([columnId, column]) =>
+                      columnId !== "jobOrders" && column.jobOrders.length > 0,
+                  )
+                }
+              >
+                Save
+              </Button>
+            </>
+          ) : null}
           {departure && selectedOrg && (
             <SaveScheduleDialog
               isOpen={isSaveDialogOpen}
@@ -509,6 +563,7 @@ export default function SchedulesPage() {
             columns={columns}
             onColumnsChange={setColumns}
             depot={departure?.location}
+            userRole={userRole}
           />
         )}
       </div>

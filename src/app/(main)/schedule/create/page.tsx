@@ -6,7 +6,7 @@ import {
   DepartureDialog,
   type DepartureInfo,
 } from "@/components/DepartureDialog";
-import { Employees } from "@prisma/client";
+import { Employees, Roles } from "@prisma/client";
 import { startTransition, useEffect, useState } from "react";
 import { loadEmployees } from "../../employees/loadEmployees";
 import { useOrganization } from "@/app/contexts/OrganizationContext";
@@ -24,8 +24,12 @@ import { useToast } from "@/components/hooks/use-toast";
 import { LoadingDialog } from "@/components/LoadingDialog";
 import { DistanceDialog } from "../utils/auto-sched-dialog";
 import { CreateMessage } from "../../updates/action";
+import { calculateTotalDistanceAndTime, calculateTotalSpace } from "../utils/calculateRoute";
+import { validateRole } from "@/roleAuth";
+import { useSession } from "../../SessionProvider";
 
 export default function Schedules() {
+  const { user } = useSession();
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const { selectedOrg } = useOrganization();
   const [employees, setEmployees] = useState<Employees[]>([]);
@@ -44,6 +48,7 @@ export default function Schedules() {
   const [isDistanceDialogOpen, setIsDistanceDialogOpen] = useState(false);
   const [maxDistance, setMaxDistance] = useState<number>(0);
   const [tempDistance, setTempDistance] = useState<string>("");
+  const [userRole, setUserRole] = useState<Roles | null>(null);
 
   useEffect(() => {
     async function fetchEmpJob() {
@@ -76,6 +81,17 @@ export default function Schedules() {
 
     fetchEmpJob();
   }, [selectedOrg]);
+
+  useEffect(() => {
+    async function fetchUserRole() {
+      if (!selectedOrg) return;
+
+      const role = await validateRole(user, selectedOrg.id);
+      setUserRole(role);
+    }
+
+    fetchUserRole();
+  }, [selectedOrg, user]);
 
   const getValidDateString = (
     date: Date | string | null | undefined,
@@ -235,49 +251,65 @@ export default function Schedules() {
       return;
     }
 
+    // Calculate total distance, time, and space for each column
+    const updatedColumns: Columns = { ...columns };
+    for (const columnId in updatedColumns) {
+        const column = updatedColumns[columnId];
+        if (columnId !== "jobOrders" && column.jobOrders.length > 0) {
+            const {totalDistance, totalTime} = await calculateTotalDistanceAndTime(column.jobOrders, departure);
+            const totalSpace = await calculateTotalSpace(column.jobOrders);
+
+            // Update the column with calculated values
+            column.totalDistance = totalDistance;
+            column.totalTime = totalTime;
+            column.totalSpace = Number(totalSpace);
+        }
+    }
+
+    // Prepare schedule data
     const scheduleData: ScheduleValues = {
-      name,
-      departAddress: departure.location.address,
-      departCity: departure.location.city,
-      departPostCode: departure.location.postCode,
-      departState: departure.location.state,
-      departCountry: departure.location.country,
-      departLatitude: departure.location.latitude,
-      departLongitude: departure.location.longitude,
-      departPlaceId: departure.location.placeId,
-      orgId: selectedOrg.id,
-      departTime: departure.datetime,
+        name,
+        departAddress: departure.location.address,
+        departCity: departure.location.city,
+        departPostCode: departure.location.postCode,
+        departState: departure.location.state,
+        departCountry: departure.location.country,
+        departLatitude: departure.location.latitude,
+        departLongitude: departure.location.longitude,
+        departPlaceId: departure.location.placeId,
+        orgId: selectedOrg.id,
+        departTime: departure.datetime,
     };
 
     setError(null);
     startTransition(async () => {
-      try {
-        const result = await createSchedule(scheduleData, columns);
-        if (result && result.error) {
-          toast({
-            title: "Error",
-            description: `Error creating schedule`,
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "Success",
-            description: `Successfully created schedule`,
-          });
-          const messageResult = await CreateMessage(`created new Schedule: ${scheduleData.name}`, selectedOrg!)
-          if (messageResult && messageResult.error) {
-            toast({
-              title: "Error",
-              description: `Error creating update message`,
-              variant: "destructive",
-            });
-          }
-          router.push("/schedule");
+        try {
+            const result = await createSchedule(scheduleData, updatedColumns);
+            if (result && result.error) {
+                toast({
+                    title: "Error",
+                    description: `Error creating schedule`,
+                    variant: "destructive",
+                });
+            } else {
+                toast({
+                    title: "Success",
+                    description: `Successfully created schedule`,
+                });
+                const messageResult = await CreateMessage(`created new Schedule: ${scheduleData.name}`, selectedOrg!)
+                if (messageResult && messageResult.error) {
+                    toast({
+                        title: "Error",
+                        description: `Error creating update message`,
+                        variant: "destructive",
+                    });
+                }
+                router.push("/schedule");
+            }
+        } catch (err) {
+            console.error("Error creating schedule:", err);
+            setError("An unexpected error occurred. Please try again.");
         }
-      } catch (err) {
-        console.error("Error creating schedule:", err);
-        setError("An unexpected error occurred. Please try again.");
-      }
     });
   }
 
@@ -442,6 +474,7 @@ export default function Schedules() {
             columns={columns}
             onColumnsChange={setColumns}
             depot={departure?.location}
+            userRole={userRole}
           />
         )}
       </div>

@@ -36,6 +36,10 @@ export interface Column {
   id: string
   title: string
   jobOrders: JobOrderWithTasks[]
+  totalDistance?: number
+  totalTime?: number
+  totalSpace?: number
+  totalOrders?: number
 }
 
 export interface Columns {

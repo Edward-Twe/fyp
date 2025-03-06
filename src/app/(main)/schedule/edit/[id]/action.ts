@@ -4,6 +4,7 @@ import { Columns } from "@/app/types/routing";
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { updateScheduleSchema, UpdateScheduleValues } from "@/lib/validation";
+import { Status } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { isRedirectError } from "next/dist/client/components/redirect";
 
@@ -11,6 +12,7 @@ export async function editSchedule(
   values: UpdateScheduleValues,
   columns: Columns,
 ): Promise<{ error?: string; success?: boolean }> {
+
   const { user } = await validateRequest();
 
   if (!user) return { error: "Unauthorized" };
@@ -73,13 +75,40 @@ export async function editSchedule(
         },
       });
 
+      // Delete existing EmployeeSchedules for this schedule
+      await tx.employeeSchedules.deleteMany({
+        where: {
+          scheduleId: id,
+        },
+      });
+
       // Update job orders for each employee column
       for (const [columnId, column] of Object.entries(columns)) {
         // Skip the 'jobOrders' column as it contains unassigned jobs
         if (columnId === "jobOrders") continue;
 
-        // Update job orders
+        // Calculate total distance, time, and space for the employee
+        const totalDistance = column.totalDistance ?? 0; 
+        const totalTime = column.totalTime ?? 0; 
+        const totalSpace = column.totalSpace ?? 0; 
+        const totalOrders = column.totalOrders ?? 0; 
+
+        // Create new EmployeeSchedules entry
+        await tx.employeeSchedules.create({
+          data: {
+            employeeId: columnId,
+            scheduleId: id,
+            totalDistance,
+            totalTime,
+            totalOrders,
+            totalSpace,
+          },
+        });
+
+        // Update job orders for each employee column
         for (const job of column.jobOrders) {
+
+          // Update the job order with the scheduledOrder
           await tx.jobOrders.update({
             where: { id: job.id },
             data: {
@@ -143,4 +172,31 @@ export async function getEmployees(id: string) {
     .filter((emp) => emp !== null);
 
   return employees;
+}
+
+export async function updateJobOrderStatus(
+  jobOrderId: string,
+  newStatus: Status
+): Promise<{ error?: string; success?: boolean }> {
+  const { user } = await validateRequest();
+
+  // Check if the user is not an admin or owner
+  if (!user) {
+    return { error: "Unauthorized" };
+  }
+
+  try {
+    // Update the job order status
+    await prisma.jobOrders.update({
+      where: { id: jobOrderId },
+      data: { status: newStatus },
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error(error);
+    return {
+      error: "Failed to update job order status. Please try again.",
+    };
+  }
 }

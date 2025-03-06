@@ -42,8 +42,12 @@ import { DateRangePicker } from "@/components/DateRangePicker";
 import { DateRange } from "react-day-picker";
 import { isWithinInterval, endOfDay } from "date-fns";
 import { CreateMessage } from "../updates/action";
+import { validateRole } from "@/roleAuth";
+import { Roles } from "@prisma/client";
+import { useSession } from "../SessionProvider";
 
 export default function SchedulesPage() {
+  const { user } = useSession();
   // fetch the selected organization
   const { selectedOrg } = useOrganization();
   const [schedules, setSchedules] = useState<Schedules[]>([]);
@@ -53,6 +57,7 @@ export default function SchedulesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [filteredSchedules, setFilteredSchedules] = useState<Schedules[]>([]);
+  const [userRole, setUserRole] = useState<Roles | null>(null);
 
   useEffect(() => {
     async function fetchSchedules() {
@@ -103,6 +108,17 @@ export default function SchedulesPage() {
     setFilteredSchedules(filtered);
   }, [schedules, searchQuery, dateRange]);
 
+  useEffect(() => {
+    async function fetchUserRole() {
+      if (!selectedOrg) return;
+
+      const role = await validateRole(user, selectedOrg.id);
+      setUserRole(role);
+    }
+
+    fetchUserRole();
+  }, [selectedOrg, user]);
+
   const handleDeleteSchedule = async (scheduleId: string, scheduleName: string) => {
     const result = await deleteSchedule(scheduleId);
     if (result.success) {
@@ -145,12 +161,14 @@ export default function SchedulesPage() {
     <div className="container mx-auto py-10">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Schedules</h1>
-        <Button asChild>
-          <Link href="/schedule/create">
-            <Plus className="mr-2 h-4 w-4" />
-            New
-          </Link>
-        </Button>
+        {userRole === "owner" || userRole === "admin" ? (
+          <Button asChild>
+            <Link href="/schedule/create">
+              <Plus className="mr-2 h-4 w-4" />
+              New
+            </Link>
+          </Button>
+        ) : null}
       </div>
 
       <div className="mb-6 space-y-4">
@@ -201,46 +219,50 @@ export default function SchedulesPage() {
                       Copy schedule ID
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link href={`/schedule/edit/${schedule.id}`}>
-                        Edit schedule
-                      </Link>
-                    </DropdownMenuItem>
+                    {userRole === "owner" || userRole === "admin" ? (
+                      <DropdownMenuItem asChild>
+                        <Link href={`/schedule/edit/${schedule.id}`}>
+                          Edit schedule
+                        </Link>
+                      </DropdownMenuItem>
+                    ) : null}
                     <DropdownMenuItem asChild>
                       <Link href={`/schedule/edit/${schedule.id}`}>
                         View schedule
                       </Link>
                     </DropdownMenuItem>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <DropdownMenuItem 
-                          onSelect={(e) => e.preventDefault()}
-                          className="text-red-600"
-                        >
-                          Delete schedule
-                        </DropdownMenuItem>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>
-                            Are you absolutely sure?
-                          </AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This action cannot be undone. This will permanently
-                            delete the schedule and all related data.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleDeleteSchedule(schedule.id, schedule.name)}
-                            className="bg-red-600 hover:bg-red-700"
+                    {userRole === "owner" || userRole === "admin" ? (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <DropdownMenuItem 
+                            onSelect={(e) => e.preventDefault()}
+                            className="text-red-600"
                           >
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                            Delete schedule
+                          </DropdownMenuItem>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              Are you absolutely sure?
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This action cannot be undone. This will permanently
+                              delete the schedule and all related data.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDeleteSchedule(schedule.id, schedule.name)}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    ) : null}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>

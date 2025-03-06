@@ -176,6 +176,9 @@ export const scheduleSchema = z.object({
   departPlaceId: requiredString,
   orgId: requiredString, 
   departTime: z.date(),
+  totalDistance: z.number().optional(),
+  totalTime: z.number().optional(),
+  totalSpace: z.number().optional(),
 });
 
 export type ScheduleValues = z.infer<typeof scheduleSchema>;
@@ -192,6 +195,9 @@ export const updateScheduleSchema = z.object({
   departLongitude: z.number(),
   departPlaceId: requiredString,
   departTime: z.date(),
+  totalDistance: z.number().optional(),
+  totalTime: z.number().optional(),
+  totalSpace: z.number().optional(),
 });
 
 export type UpdateScheduleValues = z.infer<typeof updateScheduleSchema>;

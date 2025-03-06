@@ -30,6 +30,7 @@ export async function loadSchedules(orgId: string | undefined) {
 
   try {
     if (role === "user") {
+      console.log('Finding...')
       schedules = await prisma.schedules.findMany({
         where: {
           AND: [

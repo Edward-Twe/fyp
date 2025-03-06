@@ -119,7 +119,7 @@ export function BoardMapDialog({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="h-[100dvh] w-screen max-w-full md:h-[80vh] md:max-w-7xl p-0 md:p-6">
-          <DialogTitle className="sr-only">{employeeName}'s Route Planning</DialogTitle>
+          <DialogTitle className="sr-only">{employeeName}&apos;s Route Planning</DialogTitle>
         <div className="relative flex h-full flex-col md:flex-row md:gap-4">
           {/* Mobile Expand Button */}
           <Button

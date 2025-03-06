@@ -28,13 +28,11 @@ export async function GET(req: Request) {
           }
         }
       },
-      include: {
-        EmployeeSchedules: {
-          include: {
-            employee: true
-          }
-        },
-        jobOrder: true
+      select: {
+        name: true,
+        createdAt: true,
+        departTime: true,
+        departAddress: true
       },
       orderBy: {
         departTime: 'asc'

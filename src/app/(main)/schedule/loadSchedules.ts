@@ -2,14 +2,65 @@
 
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
+import { validateRole } from "@/roleAuth";
+
+export async function findEmployeebyUserId(userId: string, orgId: string) {
+  const employee = await prisma.employees.findFirst({
+    where: {
+      AND: [
+        { userId: userId },
+        { orgId: orgId },
+      ],
+    },
+  });
+  
+
+  return employee;
+}
 
 export async function loadSchedules(orgId: string | undefined) {
   const { user } = await validateRequest();
 
   if (!user || !orgId) throw Error("Unauthorized");
 
+  const role = await validateRole(user, orgId);
+
+  const employee = await findEmployeebyUserId(user.id, orgId);
+  let schedules;
+
+  if(employee) {
+    console.log(employee);
+  }
+
   try {
-    const schedules = await prisma.schedules.findMany({
+    if (role === "user") {
+      schedules = await prisma.schedules.findMany({
+        where: {
+          AND: [
+            {
+              orgId: orgId,
+              EmployeeSchedules: {
+                some: {
+                  employeeId: employee?.id
+                }
+              }
+            }
+          ]
+        }, 
+        include: {
+          EmployeeSchedules: {
+            include: {
+              employee: true
+            }
+          },
+          jobOrder: true
+        },
+        orderBy: {
+          departTime: 'asc'
+        }
+      });
+    } else {
+      schedules = await prisma.schedules.findMany({
       where: {
         orgId: orgId,
       },
@@ -25,6 +76,8 @@ export async function loadSchedules(orgId: string | undefined) {
         }
       }
     });
+    }
+    
 
     if (schedules.length === 0) {
       return [];

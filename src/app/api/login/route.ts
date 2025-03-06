@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
         username: userExisted.username,
         email: userExisted.email
       },
-      sessionId: session.id
+      sessionId: session.id, 
     });
 
   } catch (error) {

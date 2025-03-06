@@ -121,7 +121,7 @@ export default function Dashboard() {
     }
 
     fetchSchedules()
-  }, [selectedOrg])
+  }, [selectedOrg, user])
 
   useEffect(() => {
     async function fetchUpdates() {

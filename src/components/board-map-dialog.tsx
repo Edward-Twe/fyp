@@ -12,7 +12,6 @@ import { formatDuration } from "date-fns"
 import type { LocationDetails } from "./DepartureDialog"
 import type { Roles } from "@prisma/client"
 import { Button } from "@/components/ui/button"
-import { VisuallyHidden } from "@/components/ui/visually-hidden"
 
 interface BoardMapDialogProps {
   isOpen: boolean

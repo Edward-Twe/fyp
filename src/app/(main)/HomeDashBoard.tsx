@@ -15,7 +15,7 @@ import schedule from '@/assets/schedule.jpeg'
 import tasks from '@/assets/tasks.jpeg'
 import employees from '@/assets/employees.jpeg'
 import products from '@/assets/products.jpeg'
-import { Schedules } from '@prisma/client'
+import { Roles, Schedules } from '@prisma/client'
 import { DateRangePicker } from "@/components/DateRangePicker"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DateRange } from "react-day-picker"
@@ -25,6 +25,8 @@ import { cn } from "@/lib/utils"
 import { loadUpdates } from './updates/loadUpdates'
 import { Button } from "@/components/ui/button"
 import { updateMessages } from '@prisma/client'
+import { validateRole } from '@/roleAuth'
+import { useSession } from './SessionProvider'
 
 interface ScheduleWithJobs extends Schedules {
   jobOrder?: JobOrderWithTasks[]
@@ -99,11 +101,15 @@ export default function Dashboard() {
   const [selectedPreset, setSelectedPreset] = useState<string>('last7Days')
   const [updates, setUpdates] = useState<updateMessages[]>([])
   const [currentPage, setCurrentPage] = useState(1)
+  const [userRole, setUserRole] = useState<Roles | null>(null)
   const updatesPerPage = 5
+  const { user } = useSession();
 
   useEffect(() => {
     async function fetchSchedules() {
       if (!selectedOrg) return
+      const userRole = await validateRole(user, selectedOrg.id)
+      setUserRole(userRole)
       try {
         const data = await loadSchedules(selectedOrg.id)
         setSchedules(Array.isArray(data) ? data : [])
@@ -363,6 +369,7 @@ export default function Dashboard() {
       </motion.section>
 
       {/* Quick Access Links */}
+      {userRole === 'admin' || userRole === 'owner' ? (
       <motion.section
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -457,6 +464,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </motion.section>
+      ) : null}
     </div>
   )
 }

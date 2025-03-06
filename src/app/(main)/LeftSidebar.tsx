@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ChevronDown, Settings, Calendar, CheckSquare, Users, Package, Home, PlusCircle } from "lucide-react"
+import { ChevronDown, Settings, Calendar, CheckSquare, Users, Package, Home, PlusCircle, X } from "lucide-react"
 
 import UserButton from "@/components/UserButton"
 import { Button } from "@/components/ui/button"
@@ -138,28 +138,29 @@ function LeftSidebarContent({
       disabled: selectedOrg == null,
       requiresAdmin: true,
     },
-    {
-      icon: Settings,
-      label: "Settings",
-      href: "/settings",
-      disabled: false,
-      requiresAdmin: false,
-    },
   ]
 
   return (
-    <div className="relative flex h-screen overflow-hidden bg-card">
-      {/* Fixed Sidebar */}
+    <div className="relative flex h-screen overflow-hidden bg-card !ml-0">
       <div
         className={cn(
-          "flex h-screen flex-col gap-4 border-r bg-background p-4 transition-all duration-300 ease-in-out",
+          "flex h-screen flex-col gap-4 border-r bg-background p-4 transition-all duration-300 ease-in-out z-10",
           collapsed ? "w-0 opacity-0" : "w-64 opacity-100",
+          isSmallScreen ? "absolute left-0 top-0" : "relative", // Add absolute positioning for mobile
           className,
         )}
         style={{
-          transform: collapsed ? 'translateX(-100%)' : 'translateX(0)',
+          transform: collapsed ? "translateX(-100%)" : "translateX(0)",
+          width: collapsed ? "0" : "16rem",
+          marginLeft: collapsed ? "0" : "0",
         }}
       >
+        {isSmallScreen && !collapsed && (
+          <Button variant="ghost" size="icon" onClick={() => setCollapsed(true)} className="absolute right-2 top-2">
+            <X className="h-4 w-4" />
+            <span className="sr-only">Close sidebar</span>
+          </Button>
+        )}
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-3 hover:cursor-pointer" onClick={() => redirect("/")}>
             <Image src={Logo.src || "/placeholder.svg"} alt="Logo" width={40} height={40} />
@@ -236,21 +237,25 @@ function LeftSidebarContent({
         </div>
       </div>
 
-      {/* Expand/Collapse Button */}
-      <button
-        className="absolute left-0 top-1/2 transform -translate-y-1/2 bg-background p-2 rounded-r-lg shadow-md"
-        onClick={() => setCollapsed(!collapsed)}
-        aria-label={collapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-      >
-        <ChevronDown className={cn("h-4 w-4 transition-transform", collapsed ? "-rotate-90" : "rotate-90")} />
-      </button>
-
+      {isSmallScreen && !collapsed && (
+        <div className="fixed inset-0 bg-black/50 z-0" onClick={() => setCollapsed(true)} aria-hidden="true" />
+      )}
       {/* Main content area with fixed header */}
-      <div className="flex h-screen flex-1 flex-col overflow-hidden">
+      <div
+        className={cn(
+          "flex h-screen flex-col overflow-hidden",
+          isSmallScreen ? "w-full" : collapsed ? "flex-1" : "flex-1", // Full width on mobile
+        )}
+      >
         {/* Fixed Header */}
-        <header className="flex h-14 shrink-0 items-center border-b bg-card px-6">
-          <h1 className="font-semibold capitalize">{window.location.pathname.split("/")[1] || "Dashboard"}</h1>
-          <div className="ml-auto mr-2">
+        <header className="flex h-14 shrink-0 items-center justify-between border-b bg-card px-4">
+          <div className="flex items-center">
+            <Button variant="ghost" size="icon" onClick={() => setCollapsed(!collapsed)} className="mr-2">
+              <ChevronDown className={cn("h-4 w-4 transition-transform", collapsed ? "-rotate-90" : "rotate-90")} />
+            </Button>
+            <h1 className="font-semibold capitalize">{window.location.pathname.split("/")[1] || "Dashboard"}</h1>
+          </div>
+          <div>
             <UserButton />
           </div>
         </header>

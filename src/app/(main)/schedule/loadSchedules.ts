@@ -7,13 +7,9 @@ import { validateRole } from "@/roleAuth";
 export async function findEmployeebyUserId(userId: string, orgId: string) {
   const employee = await prisma.employees.findFirst({
     where: {
-      AND: [
-        { userId: userId },
-        { orgId: orgId },
-      ],
+      AND: [{ userId: userId }, { orgId: orgId }],
     },
   });
-  
 
   return employee;
 }
@@ -28,7 +24,7 @@ export async function loadSchedules(orgId: string | undefined) {
   const employee = await findEmployeebyUserId(user.id, orgId);
   let schedules;
 
-  if(employee) {
+  if (employee) {
     console.log(employee);
   }
 
@@ -41,43 +37,48 @@ export async function loadSchedules(orgId: string | undefined) {
               orgId: orgId,
               EmployeeSchedules: {
                 some: {
-                  employeeId: employee?.id
-                }
-              }
-            }
-          ]
-        }, 
+                  employeeId: employee?.id,
+                },
+              },
+            },
+          ],
+        },
         include: {
-          EmployeeSchedules: {
+          jobOrder: {
             include: {
-              employee: true
-            }
+              JobOrderTask: {
+                include: {
+                  task: true,
+                },
+              },
+            },
           },
-          jobOrder: true
         },
         orderBy: {
-          departTime: 'asc'
-        }
+          departTime: "desc",
+        },
       });
     } else {
       schedules = await prisma.schedules.findMany({
-      where: {
-        orgId: orgId,
-      },
-      include: {
-        jobOrder: {
-          include: {
-            JobOrderTask: {
-              include: {
-                task: true
-              }
-            }
-          }
-        }
-      }
-    });
+        where: {
+          orgId: orgId,
+        },
+        include: {
+          jobOrder: {
+            include: {
+              JobOrderTask: {
+                include: {
+                  task: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          departTime: "desc",
+        },
+      });
     }
-    
 
     if (schedules.length === 0) {
       return [];

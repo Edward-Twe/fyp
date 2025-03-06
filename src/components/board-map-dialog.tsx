@@ -1,15 +1,18 @@
 "use client"
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { GoogleMap, Marker, DirectionsRenderer } from "@react-google-maps/api"
 import { useCallback, useEffect, useState } from "react"
 import type { JobOrderWithTasks } from "@/app/types/routing"
 import { Droppable, Draggable, DragDropContext, type DropResult } from "@hello-pangea/dnd"
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion"
-import { Clock } from "lucide-react"
+import { Clock, ChevronDown } from "lucide-react"
 import { formatDuration } from "date-fns"
 import type { LocationDetails } from "./DepartureDialog"
+import type { Roles } from "@prisma/client"
+import { Button } from "@/components/ui/button"
+import { VisuallyHidden } from "@/components/ui/visually-hidden"
 
 interface BoardMapDialogProps {
   isOpen: boolean
@@ -19,6 +22,7 @@ interface BoardMapDialogProps {
   employeeName: string
   columnId: string
   onJobOrdersChange: (columnId: string, updatedJobOrders: JobOrderWithTasks[]) => void
+  userRole: Roles | null
 }
 
 interface TravelInfo {
@@ -48,6 +52,7 @@ export function BoardMapDialog({
   employeeName,
   columnId,
   onJobOrdersChange,
+  userRole,
 }: BoardMapDialogProps) {
   const [localJobOrders, setLocalJobOrders] = useState(jobOrders)
   const [center] = useState<google.maps.LatLngLiteral>({
@@ -59,6 +64,7 @@ export function BoardMapDialog({
     totalTime: 0,
     legTimes: [],
   })
+  const [isExpanded, setIsExpanded] = useState(false)
 
   const fetchDirections = useCallback(async () => {
     if (!localJobOrders.length) return
@@ -113,115 +119,121 @@ export function BoardMapDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="h-[80vh] max-w-7xl">
-        <DialogHeader>
-          <DialogTitle>{employeeName}&apos;s Route Planning</DialogTitle>
-        </DialogHeader>
-        <div className="mt-4 grid h-[calc(80vh-8rem)] grid-cols-2 gap-4">
-          {/* Left side - Kanban Board */}
-          <div className="flex flex-col overflow-hidden">
-            <Card className="h-full">
-              <CardHeader className="flex-shrink-0 border-b py-2">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold">{employeeName}</h3>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Clock className="h-4 w-4" />
-                    <span>Total Travel Time: {formatTime(travelInfo.totalTime)}</span>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="flex-grow overflow-hidden p-0">
-                <DragDropContext onDragEnd={handleDragEnd}>
-                  <Droppable droppableId={columnId}>
-                    {(provided) => (
-                      <div 
-                        {...provided.droppableProps} 
-                        ref={provided.innerRef} 
-                        className="h-full overflow-y-auto p-2"
-                      >
-                        {localJobOrders.map((order, index) => (
-                          <Draggable 
-                            key={order.id} 
-                            draggableId={order.id} 
-                            index={index}
-                          >
-                            {(provided, snapshot) => {
-                              const draggableStyle = {
-                                ...provided.draggableProps.style,
-                                transform: snapshot.isDragging ? provided.draggableProps.style?.transform : 'translate(0,0)'
-                              }
+      <DialogContent className="h-[100dvh] w-screen max-w-full md:h-[80vh] md:max-w-7xl p-0 md:p-6">
+          <DialogTitle className="sr-only">{employeeName}'s Route Planning</DialogTitle>
+        <div className="relative flex h-full flex-col md:flex-row md:gap-4">
+          {/* Mobile Expand Button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="absolute left-4 top-4 z-50 flex items-center gap-2 rounded-full bg-background/80 backdrop-blur-sm md:hidden"
+          >
+            <span className="font-semibold">Job Orders</span>
+            <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
+          </Button>
 
-                              return (
+          {/* Job Orders Panel */}
+          <div
+            className={`absolute inset-x-0 top-0 z-40 w-full transform-gpu transition-transform duration-300 ease-in-out md:relative md:inset-auto md:w-1/2 ${
+              isExpanded ? "translate-y-0" : "-translate-y-[calc(100%-4rem)]"
+            } md:translate-y-0`}
+          >
+            <div className="h-[80vh] bg-background p-4 md:h-full">
+              <Card className="h-full">
+                <CardHeader className="flex-shrink-0 border-b py-2">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold">{employeeName}</h3>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Clock className="h-4 w-4" />
+                      <span>Total Travel Time: {formatTime(travelInfo.totalTime)}</span>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="flex-grow overflow-hidden p-0">
+                  <DragDropContext onDragEnd={handleDragEnd}>
+                    <Droppable droppableId={columnId}>
+                      {(provided) => (
+                        <div
+                          {...provided.droppableProps}
+                          ref={provided.innerRef}
+                          className="h-full overflow-y-auto p-2"
+                        >
+                          {localJobOrders.map((order, index) => (
+                            <Draggable
+                              key={order.id}
+                              draggableId={order.id}
+                              index={index}
+                              isDragDisabled={userRole !== "owner" && userRole !== "admin"}
+                            >
+                              {(provided, snapshot) => (
                                 <div
                                   ref={provided.innerRef}
                                   {...provided.draggableProps}
-                                  style={draggableStyle}
+                                  {...provided.dragHandleProps}
                                   className={`mb-2 rounded bg-secondary p-2 shadow transition-shadow ${
-                                    snapshot.isDragging ? 'shadow-lg' : ''
+                                    snapshot.isDragging ? "shadow-lg" : ""
                                   }`}
                                 >
-                                  <div {...provided.dragHandleProps} className="cursor-grab active:cursor-grabbing">
-                                    <Accordion type="single" collapsible>
-                                      <AccordionItem value={order.id}>
-                                        <div className="flex w-full items-center justify-between">
-                                          <div className="flex-1">
-                                            <div className="flex items-center justify-between">
-                                              <h4 className="text-sm font-semibold">Order #{order.orderNumber}</h4>
-                                              {travelInfo.legTimes[index] && (
-                                                <span className="text-xs text-muted-foreground">
-                                                  Travel: {formatTime(travelInfo.legTimes[index])}
-                                                </span>
-                                              )}
-                                            </div>
-                                            <p className="text-xs text-gray-500">{order.address}</p>
+                                  <Accordion type="single" collapsible>
+                                    <AccordionItem value={order.id}>
+                                      <div className="flex w-full items-center justify-between">
+                                        <div className="flex-1">
+                                          <div className="flex items-center justify-between">
+                                            <h4 className="text-sm font-semibold">Order #{order.orderNumber}</h4>
+                                            {travelInfo.legTimes[index] && (
+                                              <span className="text-xs text-muted-foreground">
+                                                Travel: {formatTime(travelInfo.legTimes[index])}
+                                              </span>
+                                            )}
                                           </div>
-                                          <AccordionTrigger className="text-right" />
+                                          <p className="text-xs text-gray-500">{order.address}</p>
                                         </div>
-                                        <AccordionContent>
-                                          <div className="mt-2 space-y-2">
-                                            <h5 className="text-xs font-medium">Tasks:</h5>
-                                            <ul className="list-inside list-disc text-xs">
-                                              {order.JobOrderTask.map((jobOrderTask) => (
-                                                <li key={jobOrderTask.id}>
-                                                  {jobOrderTask.task.task} - Quantity: {jobOrderTask.quantity}
-                                                  <span className="ml-2 text-gray-500">
-                                                    ({jobOrderTask.task.requiredTimeValue.toString()}{" "}
-                                                    {jobOrderTask.task.requiredTimeUnit})
-                                                  </span>
-                                                </li>
-                                              ))}
-                                            </ul>
-                                          </div>
-                                        </AccordionContent>
-                                      </AccordionItem>
-                                    </Accordion>
-                                  </div>
+                                        <AccordionTrigger className="text-right" />
+                                      </div>
+                                      <AccordionContent>
+                                        <div className="mt-2 space-y-2">
+                                          <h5 className="text-xs font-medium">Tasks:</h5>
+                                          <ul className="list-inside list-disc text-xs">
+                                            {order.JobOrderTask.map((jobOrderTask) => (
+                                              <li key={jobOrderTask.id}>
+                                                {jobOrderTask.task.task} - Quantity: {jobOrderTask.quantity}
+                                                <span className="ml-2 text-gray-500">
+                                                  ({jobOrderTask.task.requiredTimeValue.toString()}{" "}
+                                                  {jobOrderTask.task.requiredTimeUnit})
+                                                </span>
+                                              </li>
+                                            ))}
+                                          </ul>
+                                        </div>
+                                      </AccordionContent>
+                                    </AccordionItem>
+                                  </Accordion>
                                 </div>
-                              )
-                            }}
-                          </Draggable>
-                        ))}
-                        {provided.placeholder}
-                      </div>
-                    )}
-                  </Droppable>
-                </DragDropContext>
-              </CardContent>
-              <CardFooter className="border-t py-2">
-                <div className="flex w-full items-center justify-between text-sm">
-                  <span className="font-medium">Route Summary:</span>
-                  <div className="text-muted-foreground">
-                    {localJobOrders.length} stops • {formatTime(travelInfo.totalTime)} total travel time
+                              )}
+                            </Draggable>
+                          ))}
+                          {provided.placeholder}
+                        </div>
+                      )}
+                    </Droppable>
+                  </DragDropContext>
+                </CardContent>
+                <CardFooter className="border-t py-2">
+                  <div className="flex w-full items-center justify-between text-sm">
+                    <span className="font-medium">Route Summary:</span>
+                    <div className="text-muted-foreground">
+                      {localJobOrders.length} stops • {formatTime(travelInfo.totalTime)} total travel time
+                    </div>
                   </div>
-                </div>
-              </CardFooter>
-            </Card>
+                </CardFooter>
+              </Card>
+            </div>
           </div>
 
-          {/* Right side - Map */}
-          <div className="relative overflow-hidden rounded-lg border">
+          {/* Map */}
+          <div className="relative h-full w-full overflow-hidden md:rounded-lg md:border">
             <GoogleMap mapContainerStyle={mapContainerStyle} center={center} zoom={12}>
-              {/* Depot marker */}
               <Marker
                 position={{ lat: depot.latitude, lng: depot.longitude }}
                 icon={{
@@ -230,37 +242,34 @@ export function BoardMapDialog({
                 label={{
                   text: "D",
                   color: "white",
-                  fontWeight: "bold"
+                  fontWeight: "bold",
                 }}
                 title="Depot"
               />
-
-              {/* Job order markers with numbers */}
               {localJobOrders.map((order, index) => (
                 <Marker
                   key={order.id}
-                  position={{ 
-                    lat: Number(order.latitude), 
-                    lng: Number(order.longitude) 
+                  position={{
+                    lat: Number(order.latitude),
+                    lng: Number(order.longitude),
                   }}
                   label={{
                     text: (index + 1).toString(),
                     color: "white",
-                    fontWeight: "bold"
+                    fontWeight: "bold",
                   }}
                   title={`Stop ${index + 1}: Order #${order.orderNumber}`}
                 />
               ))}
-
               {directions && (
                 <DirectionsRenderer
                   directions={directions}
                   options={{
-                    suppressMarkers: true, // Hide default markers
+                    suppressMarkers: true,
                     polylineOptions: {
                       strokeColor: "#4A90E2",
-                      strokeWeight: 4
-                    }
+                      strokeWeight: 4,
+                    },
                   }}
                 />
               )}

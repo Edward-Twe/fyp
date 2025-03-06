@@ -376,7 +376,7 @@ export default function Dashboard() {
         transition={{ duration: 0.5, delay: 0.4 }}
         className="grid grid-cols-1 md:grid-cols-2 gap-6"
       >
-        <Card className="bg-rose-50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-800">
+        <Card className="bg-rose-50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-800 w-full">
           <CardHeader>
             <CardTitle className="flex items-center">
               <BarChart3 className="mr-2 h-5 w-5" />
@@ -385,7 +385,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-[300px]">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {quickActions.map((action, index) => (
                   <Link 
                     key={index}
@@ -410,7 +410,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className="bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800">
+        <Card className="bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800 w-full">
           <CardHeader>
             <CardTitle className="flex items-center">
               <AlertCircle className="mr-2 h-5 w-5" />

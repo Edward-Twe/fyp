@@ -48,6 +48,10 @@ export function SelectionDialog<T>({
   useEffect(() => {
     let filtered = items
 
+    if (icon) {
+      console.log();
+    }
+
     if (searchQuery) {
       filtered = filtered.filter((item) =>
         getItemLabel(item).toLowerCase().includes(searchQuery.toLowerCase())

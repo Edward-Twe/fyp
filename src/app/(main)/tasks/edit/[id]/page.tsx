@@ -1,9 +1,6 @@
 import { Metadata } from "next";
 import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+  Card
 } from "@/components/ui/card";
 import TaskForm from "./TaskFrom";
 

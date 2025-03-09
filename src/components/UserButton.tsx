@@ -19,7 +19,6 @@ import { Button } from "./ui/button";
 import { logout } from "@/app/(auth)/logout/actions";
 import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
-import { useOrganization } from "@/app/contexts/OrganizationContext";
 
 interface UserButtonProps {
   className?: string;
@@ -42,10 +41,8 @@ export default function UserButton({ className }: UserButtonProps) {
   const { user } = useSession();
 
   const { theme, setTheme } = useTheme();
-  const { clearSelectedOrg } = useOrganization();
 
   async function handleLogout() {
-    clearSelectedOrg();
     await logout();
   }
 

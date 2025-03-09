@@ -13,7 +13,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { CardContent, CardFooter } from "@/components/ui/card";
+import { CardContent, CardFooter, Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import LoadingButton from "@/components/Loadingbutton";
 import { useOrganization } from "@/app/contexts/OrganizationContext";
@@ -22,6 +22,8 @@ import { Tasks } from "@prisma/client";
 import { useToast } from "@/components/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { CreateMessage } from "@/app/(main)/updates/action";
+import { Clock, AlertCircle, CheckCircle2, Ruler, ClipboardList } from "lucide-react";
+import Link from "next/link";
 
 export default function EditTaskForm({ id }: { id: string }) {
   const [error, setError] = useState<string>();
@@ -80,7 +82,19 @@ export default function EditTaskForm({ id }: { id: string }) {
   }, [id, form]);
 
   if (isLoading) {
-    return (<div>Loading...</div>);
+    return (
+      <div className="flex h-full w-full items-center justify-center p-8">
+        <div className="animate-pulse-opacity text-theme-blue-500 dark:text-theme-blue-400">
+          <div className="flex flex-col items-center gap-4">
+            <div className="relative">
+              <ClipboardList className="h-16 w-16 animate-float" />
+              <div className="absolute -right-2 -top-2 h-4 w-4 animate-pulse rounded-full bg-theme-blue-500"></div>
+            </div>
+            <p className="text-lg font-medium">Loading Task...</p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (task === null) {
@@ -122,98 +136,171 @@ export default function EditTaskForm({ id }: { id: string }) {
   };
 
   if (!selectedOrg) {
-    return <h1>Please Select or Create an Organization First!</h1>;
+    return (
+      <div className="flex h-full w-full flex-col items-center justify-center p-8 text-center">
+        <div className="glass-card max-w-md p-8 animate-fade-in">
+          <div className="mb-6 text-theme-blue-500 dark:text-theme-blue-400">
+            <ClipboardList className="mx-auto h-16 w-16" />
+          </div>
+          <h1 className="mb-4 text-2xl font-bold text-gradient">Organization Required</h1>
+          <p className="mb-6 text-muted-foreground">Please select or create an organization to edit tasks.</p>
+          <Link href="/organizations" className="btn-primary inline-flex items-center justify-center w-full">
+            Go to Organizations
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)}>
-        <CardContent className="space-y-4">
-          {error && <p className="text-center text-destructive">{error}</p>}
-          <FormField
-            control={form.control}
-            name="task"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Task Name</FormLabel>
-                <FormControl>
-                  <Input placeholder="Enter task name" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <div className="flex space-x-2">
-            <FormField
-              control={form.control}
-              name="requiredTimeValue"
-              render={({ field }) => (
-                <FormItem className="flex-1">
-                  <FormLabel>Required Time</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      placeholder="Enter estimated time"
-                      {...field}
-                      onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+    <div className="container max-w-2xl mx-auto py-10 px-4 animate-fade-in">
+      <div className="mb-8 flex items-center gap-3">
+        <div className="rounded-full bg-theme-blue-100 p-3 dark:bg-theme-blue-900/30">
+          <ClipboardList className="h-6 w-6 text-theme-blue-600 dark:text-theme-blue-400" />
+        </div>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-gradient">Edit Task</h1>
+          <p className="text-sm text-muted-foreground">Update task details and requirements</p>
+        </div>
+      </div>
+
+      <Card className="glass-card overflow-hidden border-theme-blue-100/50 dark:border-theme-blue-900/30">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <CardContent className="space-y-6 p-6">
+              {error && (
+                <div className="rounded-lg bg-red-50 p-4 text-red-600 dark:bg-red-900/20 dark:text-red-400 flex items-center gap-2 animate-fade-in">
+                  <AlertCircle className="h-5 w-5" />
+                  <p>{error}</p>
+                </div>
               )}
-            />
-            <FormField
-              control={form.control}
-              name="requiredTimeUnit"
-              render={({ field }) => (
-                <FormItem className="w-1/3">
-                  <FormLabel>Unit</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select unit" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="minutes">Minutes</SelectItem>
-                      <SelectItem value="hours">Hours</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-          <FormField
-            control={form.control}
-            name="spaceNeeded"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Space Needed</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    placeholder="Enter space needed for the task"
-                    {...field}
-                    onChange={(e) => field.onChange(parseFloat(e.target.value))}
+              
+              <div className="space-y-2">
+                <FormField
+                  control={form.control}
+                  name="task"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm font-medium flex items-center gap-1.5">
+                        <ClipboardList className="h-4 w-4 text-theme-blue-500" />
+                        Task Name
+                      </FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="Enter descriptive task name" 
+                          {...field} 
+                          className="input-field focus:border-theme-blue-300"
+                        />
+                      </FormControl>
+                      <FormMessage className="text-xs" />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <div className="bg-theme-blue-50/50 dark:bg-theme-blue-900/10 rounded-lg p-4 space-y-4">
+                <h3 className="text-sm font-medium text-theme-blue-700 dark:text-theme-blue-300 flex items-center gap-1.5">
+                  <Clock className="h-4 w-4" />
+                  Time Requirements
+                </h3>
+                
+                <div className="flex space-x-3">
+                  <FormField
+                    control={form.control}
+                    name="requiredTimeValue"
+                    render={({ field }) => (
+                      <FormItem className="flex-1">
+                        <FormLabel className="text-xs text-muted-foreground">Duration</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="Enter time value"
+                            {...field}
+                            onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                            className="input-field focus:border-theme-blue-300"
+                          />
+                        </FormControl>
+                        <FormMessage className="text-xs" />
+                      </FormItem>
+                    )}
                   />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </CardContent>
-        <CardFooter>
-          <LoadingButton
-            type="submit"
-            className="w-full"
-            loading={isPending}
-          >
-            Edit Task
-          </LoadingButton>
-        </CardFooter>
-      </form>
-    </Form>
+                  <FormField
+                    control={form.control}
+                    name="requiredTimeUnit"
+                    render={({ field }) => (
+                      <FormItem className="w-1/3">
+                        <FormLabel className="text-xs text-muted-foreground">Unit</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger className="input-field focus:border-theme-blue-300">
+                              <SelectValue placeholder="Select unit" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent className="glass-effect">
+                            <SelectItem value="minutes">Minutes</SelectItem>
+                            <SelectItem value="hours">Hours</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage className="text-xs" />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+              
+              <div className="bg-theme-blue-50/50 dark:bg-theme-blue-900/10 rounded-lg p-4">
+                <h3 className="text-sm font-medium text-theme-blue-700 dark:text-theme-blue-300 flex items-center gap-1.5 mb-4">
+                  <Ruler className="h-4 w-4" />
+                  Space Requirements
+                </h3>
+                
+                <FormField
+                  control={form.control}
+                  name="spaceNeeded"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs text-muted-foreground">Space Needed</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="Enter space required for this task"
+                          {...field}
+                          onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                          className="input-field focus:border-theme-blue-300"
+                        />
+                      </FormControl>
+                      <FormMessage className="text-xs" />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </CardContent>
+            
+            <CardFooter className="flex flex-col gap-3 border-t border-theme-blue-100/50 dark:border-theme-blue-900/30 bg-theme-blue-50/50 dark:bg-theme-blue-900/10 p-6">
+              <LoadingButton
+                type="submit"
+                className="btn-primary w-full flex items-center justify-center gap-2"
+                loading={isPending}
+              >
+                {!isPending && (
+                  <>
+                    <CheckCircle2 className="h-4 w-4" />
+                    Update Task
+                  </>
+                )}
+              </LoadingButton>
+              
+              <Link 
+                href="/tasks" 
+                className="text-sm text-center text-muted-foreground hover:text-theme-blue-600 dark:hover:text-theme-blue-400 transition-colors"
+              >
+                Cancel and return to tasks
+              </Link>
+            </CardFooter>
+          </form>
+        </Form>
+      </Card>
+    </div>
   );
 }
 

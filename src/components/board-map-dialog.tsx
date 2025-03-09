@@ -8,7 +8,7 @@ import { Droppable, Draggable, DragDropContext, type DropResult } from "@hello-p
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion"
 import { Clock, ChevronDown } from "lucide-react"
-import { formatDuration } from "date-fns"
+import { formatDuration, format } from "date-fns"
 import type { LocationDetails } from "./DepartureDialog"
 import type { Roles } from "@prisma/client"
 import { Button } from "@/components/ui/button"
@@ -19,6 +19,10 @@ interface BoardMapDialogProps {
   jobOrders: JobOrderWithTasks[]
   depot: LocationDetails
   employeeName: string
+  employeeId: string
+  currentLat: number
+  currentLng: number
+  lastUpdatedAt: Date | null
   columnId: string
   onJobOrdersChange: (columnId: string, updatedJobOrders: JobOrderWithTasks[]) => void
   userRole: Roles | null
@@ -52,6 +56,9 @@ export function BoardMapDialog({
   columnId,
   onJobOrdersChange,
   userRole,
+  currentLat,
+  currentLng,
+  lastUpdatedAt,
 }: BoardMapDialogProps) {
   const [localJobOrders, setLocalJobOrders] = useState(jobOrders)
   const [center] = useState<google.maps.LatLngLiteral>({
@@ -64,6 +71,7 @@ export function BoardMapDialog({
     legTimes: [],
   })
   const [isExpanded, setIsExpanded] = useState(false)
+  const [map, setMap] = useState<google.maps.Map | null>(null)
 
   const fetchDirections = useCallback(async () => {
     if (!localJobOrders.length) return
@@ -103,6 +111,88 @@ export function BoardMapDialog({
     }
   }, [isOpen, fetchDirections, localJobOrders])
 
+  useEffect(() => {
+    if (!map) return;
+
+    const bounds = new google.maps.LatLngBounds();
+    
+    // Add depot marker with larger size
+    const label = document.createElement("div");
+label.style.color = "white";
+label.style.fontSize = "16px";
+label.style.fontWeight = "bold";
+label.style.backgroundColor = "blue"; // Background color for visibility
+label.style.padding = "4px";
+label.style.borderRadius = "4px";
+label.textContent = "D";
+
+// Create the AdvancedMarkerElement
+const depotMarker = new google.maps.marker.AdvancedMarkerElement({
+  position: { lat: Number(depot.latitude), lng: Number(depot.longitude) },
+  map,
+  title: "Depot",
+      content: label,
+    });
+    bounds.extend(depotMarker.position!);
+
+    // Add employee's current location if available and user is admin/owner
+    if (userRole === "admin" || userRole === "owner") {
+      const locationInfo = document.createElement("div");
+      locationInfo.className = "bg-white px-4 py-2 rounded-lg shadow-md";
+      
+      if (currentLat !== 1000 && currentLng !== 1000) {
+        const employeeInitials = employeeName
+          .split(" ")
+          .map(name => name[0])
+          .join("")
+          .toUpperCase();
+
+        const employeeMarker = new google.maps.Marker({
+          position: { lat: currentLat, lng: currentLng },
+          map,
+          label: {
+            text: employeeInitials,
+            color: "white",
+            fontSize: "16px",
+            fontWeight: "bold"
+          },
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 15,
+            fillColor: "#4CAF50", // Green
+            fillOpacity: 1,
+            strokeWeight: 2,
+            strokeColor: "#FFFFFF",
+          },
+          title: `${employeeName}'s current location${lastUpdatedAt ? `\nLast updated: ${format(new Date(lastUpdatedAt), "MMM d, yyyy h:mm a")}` : ""}`,
+        });
+        bounds.extend(employeeMarker.getPosition()!);
+
+        locationInfo.innerHTML = `
+          <p class="text-sm font-medium">${employeeName}'s Location</p>
+          <p class="text-xs text-gray-500">Last updated: ${lastUpdatedAt ? format(new Date(lastUpdatedAt), "MMM d, yyyy h:mm a") : "Not available"}</p>
+        `;
+      } else {
+        locationInfo.innerHTML = `
+          <div class="flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-yellow-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <p class="text-sm font-medium text-yellow-700">${employeeName} has not started location tracking</p>
+          </div>
+        `;
+      }
+
+      map.controls[google.maps.ControlPosition.TOP_RIGHT].push(locationInfo);
+    }
+
+    // Fit bounds with padding
+    map.fitBounds(bounds, 50);
+
+  }, [map, jobOrders, depot, currentLat, currentLng, lastUpdatedAt, employeeName, userRole]);
+
   const handleDragEnd = (result: DropResult) => {
     const { source, destination } = result
 
@@ -120,6 +210,7 @@ export function BoardMapDialog({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="h-[100dvh] w-screen max-w-full md:h-[80vh] md:max-w-7xl p-0 md:p-6">
           <DialogTitle className="sr-only">{employeeName}&apos;s Route Planning</DialogTitle>
+
         <div className="relative flex h-full flex-col md:flex-row md:gap-4">
           {/* Mobile Expand Button */}
           <Button
@@ -139,7 +230,7 @@ export function BoardMapDialog({
             } md:translate-y-0`}
           >
             <div className="h-[80vh] bg-background p-4 md:h-full">
-              <Card className="h-full">
+              <Card className="h-full bg-gradient-to-b from-blue-100 to-blue-50 dark:from-blue-900/30 dark:to-blue-950/20">
                 <CardHeader className="flex-shrink-0 border-b py-2">
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-semibold">{employeeName}</h3>
@@ -208,6 +299,7 @@ export function BoardMapDialog({
                                       </AccordionContent>
                                     </AccordionItem>
                                   </Accordion>
+                                  
                                 </div>
                               )}
                             </Draggable>
@@ -232,7 +324,7 @@ export function BoardMapDialog({
 
           {/* Map */}
           <div className="relative h-full w-full overflow-hidden md:rounded-lg md:border">
-            <GoogleMap mapContainerStyle={mapContainerStyle} center={center} zoom={12}>
+            <GoogleMap mapContainerStyle={mapContainerStyle} center={center} zoom={12} onLoad={(map) => setMap(map)} options={{mapId: '209a40c5f19034b0'}}>
               <Marker
                 position={{ lat: depot.latitude, lng: depot.longitude }}
                 icon={{

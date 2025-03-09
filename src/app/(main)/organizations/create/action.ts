@@ -16,14 +16,26 @@ export async function createOrganization(
   try {
     const { name, email, location, logoUrl } = organizationSchema.parse(values);
 
-    await prisma.organization.create({
-      data: {
-        name: name,
-        email: email,
-        location: location,
-        orgPic: logoUrl,
-        ownerId: user.id,
-      },
+    await prisma.$transaction(async (tx) => {
+      // Create the organization
+      const organization = await tx.organization.create({
+        data: {
+          name: name,
+          email: email,
+          location: location,
+          orgPic: logoUrl,
+          ownerId: user.id,
+        },
+      });
+
+      // Create owner role for the organization
+      await tx.organizationRole.create({
+        data: {
+          userId: user.id,
+          orgId: organization.id,
+          role: "owner",
+        },
+      });
     });
     
     revalidatePath("/");  

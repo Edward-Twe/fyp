@@ -37,13 +37,12 @@ export default function LoginForm() {
   });
 
   async function onSubmit(values: LoginValues) {
+    localStorage.clear()
+    await clearSelectedOrg()
     setError(undefined);
     startTransition(async () => {
       const { error } = await login(values);
-      if (!error) {
-        localStorage.clear()
-        clearSelectedOrg()
-      } else {
+      if (error) {
         setError(error)
       }
     });

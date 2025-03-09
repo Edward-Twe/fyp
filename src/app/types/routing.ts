@@ -40,6 +40,9 @@ export interface Column {
   totalTime?: number
   totalSpace?: number
   totalOrders?: number
+  currentLat?: number
+  currentLng?: number
+  lastUpdatedAt?: Date | null
 }
 
 export interface Columns {

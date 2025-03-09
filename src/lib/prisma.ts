@@ -35,7 +35,8 @@ const prismaClientSingleton = () => {
       params.model === "Tasks" || 
       params.model === "JobOrders" || 
       params.model === "Employees" || 
-      params.model === "Schedules"
+      params.model === "Schedules" ||
+      params.model === "EmployeeSchedules"
     ) && (
       params.action === "findMany" || 
       params.action === "findUnique" ||

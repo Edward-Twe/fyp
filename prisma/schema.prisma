@@ -96,6 +96,9 @@ model Employees {
   userId            String?
   lastLat           Decimal?
   lastLong          Decimal?
+  lastUpdatedAt     DateTime?
+  currentLat        Decimal?
+  currentLong       Decimal?
   organization      Organization        @relation(fields: [orgId], references: [id], onDelete: Cascade)
   user              User?               @relation(fields: [userId], references: [id], onDelete: Cascade)
   JobOrders         JobOrders[]
@@ -144,6 +147,7 @@ model JobOrders {
   longitude     Decimal
   spaceRequried Decimal
   placeId       String
+  updatedBy     String?
 
   organization   Organization   @relation(fields: [orgId], references: [id], onDelete: Cascade)
   JobOrderTask   JobOrderTask[]

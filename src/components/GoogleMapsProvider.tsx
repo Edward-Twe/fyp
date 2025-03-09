@@ -21,8 +21,8 @@ export function GoogleMapsProvider({
   children: React.ReactNode
 }) {
   const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: 'AIzaSyBlvQMPifdwa_9zeuK-NHCBsSRMI4tNfJk',
-    libraries: ['places'],
+    googleMapsApiKey: 'AIzaSyDjaP1gfCD0nszBI8oIeVTTromlWp0Mq9w',
+    libraries: ['places', 'marker'],
   })
 
   return (

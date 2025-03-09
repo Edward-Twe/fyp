@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
+//TODO
 export async function POST(request: NextRequest) {
   try {
     const { userId, latitude, longitude, orgId, scheduleId } = await request.json();
@@ -13,73 +14,81 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // First find the employee
-    const employee = await prisma.employees.findFirst({
-      where: {
-        AND: {
-          userId: userId,
-          orgId: orgId
+    return await prisma.$transaction(async (tx) => {
+      // First find the employee
+      const employee = await tx.employees.findFirst({
+        where: {
+          AND: {
+            userId: userId,
+            orgId: orgId
+          }
+        }
+      });
+
+      if (!employee) {
+        return NextResponse.json(
+          { message: "Employee not found" },
+          { status: 404 }
+        );
+      }
+
+      // Update employee location
+      await tx.employees.update({
+        where: { id: employee.id },
+        data: {
+          currentLat: latitude,
+          currentLong: longitude,
+          lastUpdatedAt: new Date()
+        }
+      });
+
+      // Get job orders for this schedule
+      const jobOrders = await tx.jobOrders.findMany({
+        where: {
+          schedulesId: scheduleId,
+          employeeId: employee.id,
+          NOT: {
+            status: 'completed'
+          }
+        }
+      });
+
+      // Process each job order
+      for (const order of jobOrders) {
+        const distanceResult = await tx.$queryRaw`
+          SELECT 
+            (6371 * acos(
+              cos(radians(${latitude})) * 
+              cos(radians(latitude)) * 
+              cos(radians(longitude) - radians(${longitude})) + 
+              sin(radians(${latitude})) * 
+              sin(radians(latitude))
+            ) * 1000) as distance
+          FROM "job_orders"
+          WHERE id = ${order.id}
+        `;
+
+        const distanceInMeters = (distanceResult as any)[0].distance;
+
+        if (distanceInMeters <= 20 && order.status !== 'inprogress') {
+          await tx.jobOrders.update({
+            where: { id: order.id },
+            data: { status: 'inprogress', updatedBy: 'system' }
+          });
+
+          await tx.updateMessages.create({
+            data: {
+              message: `Job order ${order.id} in progress by system (updated by system)`,
+              orgId: orgId,
+            }
+          })
         }
       }
-    });
 
-    if (!employee) {
-      return NextResponse.json(
-        { message: "Employee not found" },
-        { status: 404 }
-      );
-    }
-
-    // Then update using the id
-    await prisma.employees.update({
-      where: { id: employee.id },
-      data: {
-        lastLat: latitude,
-        lastLong: longitude
-      }
-    });
-
-    // Get job orders for this schedule
-    const jobOrders = await prisma.jobOrders.findMany({
-      where: {
-        schedulesId: scheduleId,
-        employeeId: employee.id,
-        NOT: {
-          status: 'completed'
-        }
-      }
-    });
-
-    // Process each job order
-    for (const order of jobOrders) {
-      // Calculate distance using Prisma's raw query
-      const distanceResult = await prisma.$queryRaw`
-        SELECT 
-          (6371 * acos(
-            cos(radians(${latitude})) * 
-            cos(radians(latitude)) * 
-            cos(radians(longitude) - radians($2)) + 
-            sin(radians(${latitude})) * 
-            sin(radians(latitude))
-          ) * 1000) as distance
-        FROM "job_orders"
-        WHERE id = ${order.id}
-      `;
-
-      const distanceInMeters = (distanceResult as any)[0].distance;
-
-      // If within range (300 meters) and not already in progress, update status
-      if (distanceInMeters <= 300 && order.status !== 'inprogress') {
-        await prisma.jobOrders.update({
-          where: { id: order.id },
-          data: { status: 'inprogress' }
-        });
-      }
-    }
-
-    return NextResponse.json({
-      message: "Location updated successfully",
-      employeeId: employee.id
+      return NextResponse.json({
+        message: "Location updated successfully",
+        employeeId: employee.id
+      });
     });
 
   } catch (error) {

@@ -8,7 +8,7 @@ import type { Employees, Roles } from "@prisma/client"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion"
 import type { JobOrderWithTasks, Columns, Column, Location } from "@/app/types/routing"
 import { Button } from "@/components/ui/button"
-import { Map, Route } from "lucide-react"
+import { Map, Route, Clock, Package, User } from "lucide-react"
 import { BoardMapDialog } from "./board-map-dialog"
 import type { LocationDetails } from "./DepartureDialog"
 import { optimizeRoute } from "@/app/(main)/schedule/utils/route-optimizing"
@@ -19,6 +19,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Status } from "@prisma/client"
 import { updateJobOrderStatus } from "@/app/(main)/schedule/edit/[id]/action"
 import { useToast } from "@/components/hooks/use-toast"
+import { format } from "date-fns"
 
 interface KanbanBoardProps {
   employees: Employees[]
@@ -27,15 +28,18 @@ interface KanbanBoardProps {
   onColumnsChange?: (newColumns: Columns) => void
   depot?: LocationDetails
   userRole: Roles | null
+  orgId: string
 }
 
 const SCROLL_SPEED = 15
 const SCROLL_THRESHOLD = 150
 
 const statusStyles: Record<Status, string> = {
-  todo: "text-red-500 bg-red-50 dark:bg-red-950/20",
-  inprogress: "text-yellow-500 bg-yellow-50 dark:bg-yellow-950/20",
-  completed: "text-green-500 bg-green-50 dark:bg-green-950/20",
+  todo: "text-red-600 bg-red-100 dark:text-red-300 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-800/30",
+  inprogress:
+    "text-yellow-600 bg-yellow-100 dark:text-yellow-300 dark:bg-yellow-900/30 hover:bg-yellow-200 dark:hover:bg-yellow-800/30",
+  completed:
+    "text-green-600 bg-green-100 dark:text-green-300 dark:bg-green-900/30 hover:bg-green-200 dark:hover:bg-green-800/30",
   unscheduled: "",
 } as const
 
@@ -46,6 +50,7 @@ export default function KanbanBoard({
   onColumnsChange,
   depot,
   userRole,
+  orgId,
 }: KanbanBoardProps) {
   const [columns, setColumns] = useState<Columns>({})
   const [isDragging, setIsDragging] = useState(false)
@@ -55,6 +60,9 @@ export default function KanbanBoard({
     name: string
     id: string
     jobOrders: JobOrderWithTasks[]
+    currentLat: number
+    currentLng: number
+    lastUpdatedAt: Date | null
   } | null>(null)
   const [isOptimizing, setIsOptimizing] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -82,6 +90,9 @@ export default function KanbanBoard({
             id: employee.id,
             title: employee.name,
             jobOrders: [],
+            currentLat: employee.currentLat ? Number(employee.currentLat) : 1000,
+            currentLng: employee.currentLong ? Number(employee.currentLong) : 1000,
+            lastUpdatedAt: employee.lastUpdatedAt ? employee.lastUpdatedAt : null,
           }
         })
       }
@@ -172,12 +183,22 @@ export default function KanbanBoard({
     onColumnsChange?.(newColumns)
   }
 
-  const handleMapClick = (employeeName: string, columnId: string, column: Column) => {
+  const handleMapClick = (
+    employeeName: string,
+    currentLat: number | undefined,
+    currentLng: number | undefined,
+    lastUpdatedAt: Date | null | undefined,
+    columnId: string,
+    column: Column,
+  ) => {
     if (column.jobOrders.length > 0 && depot) {
       setSelectedEmployee({
         name: employeeName,
         id: columnId,
         jobOrders: column.jobOrders,
+        currentLat: currentLat ? Number(currentLat) : 1000,
+        currentLng: currentLng ? Number(currentLng) : 1000,
+        lastUpdatedAt: lastUpdatedAt ? lastUpdatedAt : null,
       })
     }
   }
@@ -228,6 +249,31 @@ export default function KanbanBoard({
     return jobOrders.reduce((sum, order) => sum + Number(order.spaceRequried), 0)
   }
 
+  // Function to get column class based on index
+  const getColumnBackgroundClass = (index: number): string => {
+    const colorIndex = index % 8
+    switch (colorIndex) {
+      case 0:
+        return "bg-gradient-to-b from-blue-100 to-blue-50 dark:from-blue-900/30 dark:to-blue-950/20"
+      case 1:
+        return "bg-gradient-to-b from-indigo-100 to-indigo-50 dark:from-indigo-900/30 dark:to-indigo-950/20"
+      case 2:
+        return "bg-gradient-to-b from-sky-100 to-sky-50 dark:from-sky-900/30 dark:to-sky-950/20"
+      case 3:
+        return "bg-gradient-to-b from-cyan-100 to-cyan-50 dark:from-cyan-900/30 dark:to-cyan-950/20"
+      case 4:
+        return "bg-gradient-to-b from-teal-100 to-teal-50 dark:from-teal-900/30 dark:to-teal-950/20"
+      case 5:
+        return "bg-gradient-to-b from-blue-100 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-950/20"
+      case 6:
+        return "bg-gradient-to-b from-sky-100 to-blue-50 dark:from-sky-900/30 dark:to-blue-950/20"
+      case 7:
+        return "bg-gradient-to-b from-indigo-100 to-sky-50 dark:from-indigo-900/30 dark:to-sky-950/20"
+      default:
+        return "bg-gradient-to-b from-blue-100 to-blue-50 dark:from-blue-900/30 dark:to-blue-950/20"
+    }
+  }
+
   return (
     <>
       <div className="flex h-full w-full flex-col overflow-hidden p-4">
@@ -239,36 +285,50 @@ export default function KanbanBoard({
             style={{ scrollBehavior: "smooth" }}
           >
             {Object.values(columns).map(
-              (column) =>
+              (column, index) =>
                 (column.id !== "jobOrders" || userRole === "owner" || userRole === "admin") && (
-                  <div key={column.id} className="w-full md:w-[300px] flex-shrink-0 mb-4 md:mb-0">
-                    <Card className="flex h-full min-h-[300px] md:min-h-0 flex-col">
-                      <CardHeader className="flex-shrink-0 border-b py-2">
+                  <div key={column.id} className="w-full md:w-[320px] flex-shrink-0 mb-4 md:mb-0">
+                    <Card
+                      className={cn(
+                        "flex h-full min-h-[300px] md:min-h-0 flex-col border-transparent shadow-md",
+                        column.id === "jobOrders" ? "bg-white/80 dark:bg-gray-800/80" : getColumnBackgroundClass(index),
+                      )}
+                    >
+                      <CardHeader className="flex-shrink-0 border-b py-3">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             {column.id !== "jobOrders" ? (
                               <>
-                                <HoverCard>
-                                  <HoverCardTrigger>
-                                    <h3 className="cursor-help text-lg font-semibold">{column.title}</h3>
-                                  </HoverCardTrigger>
-                                  <HoverCardContent>
-                                    <div className="space-y-2">
-                                      <p className="text-sm">
-                                        <span className="font-medium">Area:</span>{" "}
-                                        {employees.find((emp) => emp.id === column.id)?.area || "N/A"}
-                                      </p>
-                                    </div>
-                                  </HoverCardContent>
-                                </HoverCard>
+                                <div className="flex items-center gap-2">
+                                  <User className="h-5 w-5 text-theme-blue-500" />
+                                  <HoverCard>
+                                    <HoverCardTrigger>
+                                      <h3 className="cursor-help text-lg font-semibold">{column.title}</h3>
+                                    </HoverCardTrigger>
+                                    <HoverCardContent>
+                                      <div className="space-y-2">
+                                        <p className="text-sm">
+                                          <span className="font-medium">Area:</span>{" "}
+                                          {employees.find((emp) => emp.id === column.id)?.area || "N/A"}
+                                        </p>
+                                        {column.lastUpdatedAt && (
+                                          <p className="text-sm">
+                                            <span className="font-medium">Last Updated:</span>{" "}
+                                            {format(new Date(column.lastUpdatedAt), "PPp")}
+                                          </p>
+                                        )}
+                                      </div>
+                                    </HoverCardContent>
+                                  </HoverCard>
+                                </div>
                                 {column.id !== "jobOrders" && (
                                   <span
                                     className={cn(
-                                      "rounded px-2 py-1 text-sm",
+                                      "rounded-full px-2 py-1 text-xs font-medium",
                                       calculateSpaceUsed(column.jobOrders) >=
                                         Number(employees.find((emp) => emp.id === column.id)?.space || 0)
-                                        ? "bg-red-100 text-red-700"
-                                        : "bg-green-100 text-green-700",
+                                        ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+                                        : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
                                     )}
                                   >
                                     {calculateSpaceUsed(column.jobOrders)}/
@@ -277,32 +337,62 @@ export default function KanbanBoard({
                                 )}
                               </>
                             ) : (
-                              <h3 className="text-lg font-semibold">{column.title}</h3>
+                              <div className="flex items-center gap-2">
+                                <Package className="h-5 w-5 text-theme-blue-500" />
+                                <h3 className="text-lg font-semibold">{column.title}</h3>
+                              </div>
                             )}
                           </div>
                           {column.id !== "jobOrders" && (
                             <div className="flex gap-2">
-                              {userRole === "owner" || userRole === "admin" && (
+                              {(userRole === "owner" || userRole === "admin") && (
                                 <Button
                                   variant="ghost"
                                   size="sm"
+                                  className="hover:bg-theme-blue-100 dark:hover:bg-theme-blue-900/30"
                                   onClick={() => handleOptimizeRoute(column.id, column)}
                                   disabled={column.jobOrders.length === 0 || !depot}
                                 >
-                                  <Route className="h-4 w-4" />
+                                  <Route className="h-4 w-4 text-theme-blue-500" />
                                 </Button>
                               )}
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handleMapClick(column.title, column.id, column)}
+                                className="hover:bg-theme-blue-100 dark:hover:bg-theme-blue-900/30"
+                                onClick={() =>
+                                  handleMapClick(
+                                    column.title,
+                                    column.currentLat,
+                                    column.currentLng,
+                                    column.lastUpdatedAt,
+                                    column.id,
+                                    column,
+                                  )
+                                }
                                 disabled={column.jobOrders.length === 0 || !depot}
                               >
-                                <Map className="h-4 w-4" />
+                                <Map className="h-4 w-4 text-theme-blue-500" />
                               </Button>
                             </div>
                           )}
                         </div>
+                        {column.totalDistance !== undefined && (
+                          <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                            <div className="flex items-center gap-1">
+                              <Route className="h-3 w-3" />
+                              <span>{column.totalDistance.toFixed(1)} km</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              <span>{column.totalTime?.toFixed(0)} min</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Package className="h-3 w-3" />
+                              <span>{column.totalOrders} orders</span>
+                            </div>
+                          </div>
+                        )}
                       </CardHeader>
                       <CardContent className="flex-grow overflow-hidden p-0">
                         <Droppable droppableId={column.id}>
@@ -324,18 +414,43 @@ export default function KanbanBoard({
                                       ref={provided.innerRef}
                                       {...provided.draggableProps}
                                       {...provided.dragHandleProps}
-                                      className="mb-2 rounded bg-secondary p-2 shadow"
+                                      className="mb-3 rounded-lg border border-transparent bg-gradient-to-r from-blue-50 to-indigo-50 p-3 shadow-md transition-all duration-300 hover:border-theme-blue-300 hover:shadow-lg dark:from-blue-900/20 dark:to-indigo-900/20 dark:hover:border-theme-blue-500"
                                     >
                                       <div key={order.id}>
                                         <Accordion type="single" collapsible>
-                                          <AccordionItem value={order.id}>
+                                          <AccordionItem value={order.id} className="border-none">
                                             <div className="flex w-full items-center justify-between">
-                                              <div>
-                                                <h4 className="text-sm font-semibold">Order #{order.orderNumber}</h4>
-                                                <p className="text-xs text-gray-500">{order.address}</p>
-                                                <span className="text-xs text-muted-foreground">
-                                                  Space: {order.spaceRequried.toString()}
-                                                </span>
+                                              <div className="space-y-1">
+                                                <div className="flex items-center gap-2">
+                                                  <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                                                    Order #{order.orderNumber}
+                                                  </h4>
+                                                  <span
+                                                    className={cn(
+                                                      "status-badge",
+                                                      order.status === "todo"
+                                                        ? "status-badge-todo"
+                                                        : order.status === "inprogress"
+                                                          ? "status-badge-inprogress"
+                                                          : "status-badge-completed",
+                                                    )}
+                                                  >
+                                                    {order.status || "todo"}
+                                                  </span>
+                                                </div>
+                                                <p className="text-xs text-gray-600 dark:text-gray-400">
+                                                  {order.address}
+                                                </p>
+                                                <div className="flex flex-wrap gap-2 pt-1">
+                                                  <span className="inline-flex items-center rounded-md bg-theme-blue-50 px-2 py-0.5 text-xs font-medium text-theme-blue-700 dark:bg-theme-blue-900/30 dark:text-theme-blue-300">
+                                                    Space: {order.spaceRequried.toString()}
+                                                  </span>
+                                                  {order.updatedBy && (
+                                                    <span className="inline-flex items-center rounded-md bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+                                                      Updated by: {order.updatedBy}
+                                                    </span>
+                                                  )}
+                                                </div>
                                               </div>
                                               <div className="flex items-center gap-2">
                                                 <DropdownMenu>
@@ -360,7 +475,7 @@ export default function KanbanBoard({
                                                           ...order,
                                                           status: Status.todo,
                                                         }
-                                                        const result = await updateJobOrderStatus(order.id, Status.todo)
+                                                        const result = await updateJobOrderStatus(order.id, Status.todo, orgId, order.employeeId!)
                                                         setLoading(false)
 
                                                         if (result.error) {
@@ -404,6 +519,8 @@ export default function KanbanBoard({
                                                         const result = await updateJobOrderStatus(
                                                           order.id,
                                                           Status.inprogress,
+                                                          orgId,
+                                                          order.employeeId!,
                                                         )
                                                         setLoading(false)
 
@@ -448,6 +565,8 @@ export default function KanbanBoard({
                                                         const result = await updateJobOrderStatus(
                                                           order.id,
                                                           Status.completed,
+                                                          orgId,
+                                                          order.employeeId!,
                                                         )
                                                         setLoading(false)
 
@@ -483,22 +602,33 @@ export default function KanbanBoard({
                                                     </DropdownMenuItem>
                                                   </DropdownMenuContent>
                                                 </DropdownMenu>
-                                                <AccordionTrigger className="text-right">
+                                                <AccordionTrigger className="text-right hover:no-underline">
                                                   {/* AccordionTrigger content */}
                                                 </AccordionTrigger>
                                               </div>
                                             </div>
                                             <AccordionContent>
-                                              <div className="mt-2 space-y-2">
-                                                <h5 className="text-xs font-medium">Tasks:</h5>
-                                                <ul className="list-inside list-disc text-xs">
+                                              <div className="mt-3 space-y-2 rounded-md bg-white/50 p-2 dark:bg-gray-800/50">
+                                                <h5 className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                                                  Tasks:
+                                                </h5>
+                                                <ul className="grid gap-1.5">
                                                   {order.JobOrderTask.map((jobOrderTask) => (
-                                                    <li key={jobOrderTask.id}>
-                                                      {jobOrderTask.task.task} - Quantity: {jobOrderTask.quantity}
-                                                      <span className="ml-2 text-gray-500">
-                                                        ({jobOrderTask.task.requiredTimeValue.toString()}{" "}
-                                                        {jobOrderTask.task.requiredTimeUnit})
-                                                      </span>
+                                                    <li
+                                                      key={jobOrderTask.id}
+                                                      className="flex items-start gap-2 text-xs"
+                                                    >
+                                                      <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-theme-blue-400 dark:bg-theme-blue-600"></span>
+                                                      <div>
+                                                        <span className="font-medium">{jobOrderTask.task.task}</span>
+                                                        <span className="ml-1 text-gray-500">
+                                                          - Quantity: {jobOrderTask.quantity}
+                                                        </span>
+                                                        <span className="ml-2 text-gray-500">
+                                                          ({jobOrderTask.task.requiredTimeValue.toString()}{" "}
+                                                          {jobOrderTask.task.requiredTimeUnit})
+                                                        </span>
+                                                      </div>
                                                     </li>
                                                   ))}
                                                 </ul>
@@ -530,7 +660,11 @@ export default function KanbanBoard({
             jobOrders={selectedEmployee.jobOrders}
             depot={depot}
             employeeName={selectedEmployee.name}
+            employeeId={selectedEmployee.id}
             columnId={selectedEmployee.id}
+            currentLat={selectedEmployee.currentLat}
+            currentLng={selectedEmployee.currentLng}
+            lastUpdatedAt={selectedEmployee.lastUpdatedAt}
             onJobOrdersChange={(columnId, updatedJobOrders) => {
               const newColumns = {
                 ...columns,

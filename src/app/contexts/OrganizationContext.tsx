@@ -17,11 +17,9 @@ export function useOrganization() {
     throw new Error('useOrganization must be used within an OrganizationProvider');
   }
 
-  const clearSelectedOrg = () => {
+  const clearSelectedOrg = async () => {
     context.setSelectedOrg(null);
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('selectedOrg');
-    }
+    localStorage.removeItem('selectedOrg');
   };
 
   return { ...context, clearSelectedOrg };

@@ -95,3 +95,22 @@ export async function loadSchedules(orgId: string | undefined) {
     };
   }
 }
+
+export async function loadEmployeeSchedules(orgId: string | undefined) {
+  const { user } = await validateRequest();
+
+  if (!user || !orgId) throw Error("Unauthorized");
+  
+  const empployeeSchedules = await prisma.employeeSchedules.findMany({
+    where: {
+      schedule: {
+        orgId: orgId,
+      },
+    },
+    include: {
+      schedule: true,
+    },
+  });
+
+  return empployeeSchedules;
+}

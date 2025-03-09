@@ -253,7 +253,6 @@ function LeftSidebarContent({
             <Button variant="ghost" size="icon" onClick={() => setCollapsed(!collapsed)} className="mr-2">
               <ChevronDown className={cn("h-4 w-4 transition-transform", collapsed ? "-rotate-90" : "rotate-90")} />
             </Button>
-            <h1 className="font-semibold capitalize">{window.location.pathname.split("/")[1] || "Dashboard"}</h1>
           </div>
           <div>
             <UserButton />

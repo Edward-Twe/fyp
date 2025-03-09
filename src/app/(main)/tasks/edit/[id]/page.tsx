@@ -25,10 +25,6 @@ export default async function EditTask({ params }: PageProps) {
   return (
     <div className="container mx-auto py-10">
       <Card className="mx-auto w-full max-w-2xl">
-        <CardHeader>
-          <CardTitle>Edit Task</CardTitle>
-          <CardDescription>Fill in the details to edit task.</CardDescription>
-        </CardHeader>
         <TaskForm id={id} />
       </Card>
     </div>

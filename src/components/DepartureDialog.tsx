@@ -43,6 +43,7 @@ export interface DepartureInfo {
 interface DepartureDialogProps {
   departure: DepartureInfo | null
   onDepartureChange: (info: DepartureInfo) => void
+  icon?: React.ReactElement
 }
 
 export function DepartureDialog({ departure, onDepartureChange }: DepartureDialogProps) {

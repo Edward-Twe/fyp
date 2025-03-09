@@ -115,6 +115,7 @@ export async function editSchedule(
               schedulesId: id,
               employeeId: columnId,
               status: job.status,
+              updatedBy: "admin",
             },
           });
         }
@@ -176,23 +177,40 @@ export async function getEmployees(id: string) {
 
 export async function updateJobOrderStatus(
   jobOrderId: string,
-  newStatus: Status
+  newStatus: Status, 
+  orgId: string, 
+  employeeId: string,
 ): Promise<{ error?: string; success?: boolean }> {
   const { user } = await validateRequest();
 
-  // Check if the user is not an admin or owner
   if (!user) {
     return { error: "Unauthorized" };
   }
 
   try {
-    // Update the job order status
-    await prisma.jobOrders.update({
-      where: { id: jobOrderId },
-      data: { status: newStatus },
-    });
+    return await prisma.$transaction(async (tx) => {
+      const employee = await tx.employees.findUnique({
+        where: { id: employeeId },
+      });
 
-    return { success: true };
+      if (!employee) {
+        return { error: "Employee not found" };
+      }
+
+      await tx.jobOrders.update({
+        where: { id: jobOrderId },
+        data: { status: newStatus, updatedBy: "employee" },
+      });
+
+      await tx.updateMessages.create({
+        data: {
+          message: `Job order ${jobOrderId} updated by employee: ${employee.name}`,
+          orgId: orgId,
+        },
+      });
+
+      return { success: true };
+    });
   } catch (error) {
     console.error(error);
     return {

@@ -25,6 +25,7 @@ interface SelectionDialogProps<T> {
   getItemDate?: (item: T) => string
   getItemStatus?: (item: T) => Status
   onSelectionChange: (selectedItems: T[]) => void
+  icon?: React.ReactElement
 }
 
 export function SelectionDialog<T>({
@@ -36,6 +37,7 @@ export function SelectionDialog<T>({
   getItemDate,
   getItemStatus,
   onSelectionChange,
+  icon,
 }: SelectionDialogProps<T>) {
   const [isOpen, setIsOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")

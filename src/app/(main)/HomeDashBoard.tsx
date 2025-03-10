@@ -36,21 +36,6 @@ import type {
   EmployeeSchedules,
   Employees,
 } from "@prisma/client";
-import { DateRangePicker } from "@/components/DateRangePicker";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import type { DateRange } from "react-day-picker";
-import {
-  startOfToday,
-  subDays,
-  startOfYear,
-  startOfMonth
-} from "date-fns";
 import type { JobOrderWithTasks } from "../types/routing";
 import { loadUpdates } from "./updates/loadUpdates";
 import { Button } from "@/components/ui/button";
@@ -83,26 +68,6 @@ const quickActions = [
   { title: "Products", href: "/products", image: products, icon: Package },
 ];
 
-const datePresets = {
-  today: {
-    from: startOfToday(),
-    to: new Date(),
-  },
-  last7Days: {
-    from: subDays(new Date(), 7),
-    to: new Date(),
-  },
-  thisMonth: {
-    from: startOfMonth(new Date()),
-    to: new Date(),
-  },
-  thisYear: {
-    from: startOfYear(new Date()),
-    to: new Date(),
-  },
-  allTime: undefined,
-} as const;
-
 export default function Dashboard() {
   const { selectedOrg } = useOrganization();
   const [schedules, setSchedules] = useState<ScheduleWithJobs[]>([]);
@@ -111,8 +76,6 @@ export default function Dashboard() {
     EmployeeSchedulesWithRelations[]
   >([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [dateRange, setDateRange] = useState<DateRange | undefined>();
-  const [selectedPreset, setSelectedPreset] = useState<string>("last7Days");
   const [updates, setUpdates] = useState<updateMessages[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [userRole, setUserRole] = useState<Roles | null>(null);
@@ -266,34 +229,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="flex gap-2">
-          <Select
-            value={selectedPreset}
-            onValueChange={(value) => {
-              setSelectedPreset(value);
-              setDateRange(datePresets[value as keyof typeof datePresets]);
-            }}
-          >
-            <SelectTrigger className="input-field w-[180px]">
-              <SelectValue placeholder="Select date range" />
-            </SelectTrigger>
-            <SelectContent className="glass-effect">
-              <SelectItem value="today">Today</SelectItem>
-              <SelectItem value="last7Days">Last 7 days</SelectItem>
-              <SelectItem value="thisMonth">This month</SelectItem>
-              <SelectItem value="thisYear">This year</SelectItem>
-              <SelectItem value="allTime">All time</SelectItem>
-              <SelectItem value="custom">Custom</SelectItem>
-            </SelectContent>
-          </Select>
-          {selectedPreset === "custom" && (
-            <DateRangePicker
-              date={dateRange}
-              onDateChange={setDateRange}
-              className="input-field"
-            />
-          )}
-        </div>
+        
       </motion.div>
 
       <Tabs

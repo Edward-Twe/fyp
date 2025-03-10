@@ -24,18 +24,11 @@ interface EmployeeSchedulesWithRelations extends EmployeeSchedules {
   schedule: ScheduleWithJobs
 }
 
-interface DateRange {
-  from: Date | null
-  to: Date | null
-}
-
 interface ScheduleMetricsProps {
   employees: Employees[]
   employeeSchedules: EmployeeSchedulesWithRelations[]
   userRole: Roles
   orgId: string
-  dateRange?: DateRange
-  selectedPreset?: string
 }
 
 export function ScheduleMetrics({
@@ -43,8 +36,6 @@ export function ScheduleMetrics({
   employeeSchedules,
   userRole,
   orgId,
-  dateRange,
-  selectedPreset = "all",
 }: ScheduleMetricsProps) {
   const [timeFilter, setTimeFilter] = useState<"all" | "7days" | "30days" | "thisMonth">("all")
   const [metricView, setMetricView] = useState<"distance" | "orders" | "tasks">("distance")
@@ -239,15 +230,6 @@ export function ScheduleMetrics({
   }
 
   const chartData = generateChartData()
-
-  // Add this after the useEffect hooks
-  const getPreviousDateRange = (from: Date, to: Date) => {
-    const duration = to.getTime() - from.getTime()
-    return {
-      from: new Date(from.getTime() - duration),
-      to: new Date(from.getTime()),
-    }
-  }
 
   // Calculate metrics for current and previous periods
   const calculatePeriodMetrics = () => {

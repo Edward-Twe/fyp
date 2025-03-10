@@ -104,12 +104,24 @@ export async function loadEmployeeSchedules(orgId: string | undefined) {
   const empployeeSchedules = await prisma.employeeSchedules.findMany({
     where: {
       schedule: {
-        orgId: orgId,
-      },
+        orgId: orgId
+      }
     },
     include: {
-      schedule: true,
-    },
+      schedule: {
+        include: {
+          jobOrder: {
+            include: {
+              JobOrderTask: {
+                include: {
+                  task: true
+                }
+              }
+            }
+          }
+        }
+      }
+    }
   });
 
   return empployeeSchedules;

@@ -12,6 +12,7 @@ import { formatDuration, format } from "date-fns"
 import type { LocationDetails } from "./DepartureDialog"
 import type { Roles } from "@prisma/client"
 import { Button } from "@/components/ui/button"
+import lorryIcon from "@/assets/lorry.png"
 
 interface BoardMapDialogProps {
   isOpen: boolean
@@ -141,28 +142,13 @@ const depotMarker = new google.maps.marker.AdvancedMarkerElement({
       locationInfo.className = "bg-white px-4 py-2 rounded-lg shadow-md";
       
       if (currentLat !== 1000 && currentLng !== 1000) {
-        const employeeInitials = employeeName
-          .split(" ")
-          .map(name => name[0])
-          .join("")
-          .toUpperCase();
-
         const employeeMarker = new google.maps.Marker({
           position: { lat: currentLat, lng: currentLng },
           map,
-          label: {
-            text: employeeInitials,
-            color: "white",
-            fontSize: "16px",
-            fontWeight: "bold"
-          },
           icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            scale: 15,
-            fillColor: "#4CAF50", // Green
-            fillOpacity: 1,
-            strokeWeight: 2,
-            strokeColor: "#FFFFFF",
+            url: lorryIcon.src,
+            scaledSize: new google.maps.Size(40, 40),
+            anchor: new google.maps.Point(16, 16),
           },
           title: `${employeeName}'s current location${lastUpdatedAt ? `\nLast updated: ${format(new Date(lastUpdatedAt), "MMM d, yyyy h:mm a")}` : ""}`,
         });

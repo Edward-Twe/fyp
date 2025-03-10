@@ -54,7 +54,7 @@ export default function SchedulesPage() {
   const [isTracking, setIsTracking] = useState(false)
   const [employeeId, setEmployeeId] = useState<string | null>(null)
   const [intervalId, setIntervalId] = useState<NodeJS.Timeout | null>(null)
-  const [isDepartureExpanded, setIsDepartureExpanded] = useState(true)
+  const [isDepartureExpanded, setIsDepartureExpanded] = useState(false)
 
   useEffect(() => {
     if (!id || !selectedOrg || !userRole) {
@@ -461,26 +461,6 @@ export default function SchedulesPage() {
       }
     }
   }, [intervalId])
-
-  // Add this useEffect to set the initial state of isDepartureExpanded based on screen size
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth >= 768) {
-        setIsDepartureExpanded(true)
-      } else {
-        setIsDepartureExpanded(false)
-      }
-    }
-
-    // Set initial state
-    handleResize()
-
-    // Add event listener
-    window.addEventListener("resize", handleResize)
-
-    // Clean up
-    return () => window.removeEventListener("resize", handleResize)
-  }, [])
 
   if (isLoading)
     return (

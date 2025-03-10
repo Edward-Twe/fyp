@@ -4,7 +4,7 @@ import { Columns } from "@/app/types/routing";
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { updateScheduleSchema, UpdateScheduleValues } from "@/lib/validation";
-import { Status } from "@prisma/client";
+import { Roles, Status } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { isRedirectError } from "next/dist/client/components/redirect";
 
@@ -114,7 +114,7 @@ export async function editSchedule(
             data: {
               schedulesId: id,
               employeeId: columnId,
-              status: job.status,
+              status: job.status === 'unscheduled' ? 'todo' : job.status,
               updatedBy: "admin",
             },
           });
@@ -177,15 +177,19 @@ export async function getEmployees(id: string) {
 
 export async function updateJobOrderStatus(
   jobOrderId: string,
+  jobOrderNumber: string,
   newStatus: Status, 
   orgId: string, 
   employeeId: string,
+  role: Roles,
 ): Promise<{ error?: string; success?: boolean }> {
   const { user } = await validateRequest();
 
   if (!user) {
     return { error: "Unauthorized" };
   }
+
+
 
   try {
     return await prisma.$transaction(async (tx) => {
@@ -197,17 +201,33 @@ export async function updateJobOrderStatus(
         return { error: "Employee not found" };
       }
 
-      await tx.jobOrders.update({
-        where: { id: jobOrderId },
-        data: { status: newStatus, updatedBy: "employee" },
-      });
+      
 
-      await tx.updateMessages.create({
-        data: {
-          message: `Job order ${jobOrderId} updated by employee: ${employee.name}`,
-          orgId: orgId,
-        },
-      });
+      if (role === Roles.admin || role === Roles.owner) {
+        await tx.jobOrders.update({
+          where: { id: jobOrderId },
+          data: { status: newStatus, updatedBy: "admin" },
+        });
+
+        await tx.updateMessages.create({
+          data: {
+            message: `Job order ${jobOrderNumber} updated by admin.`,
+            orgId: orgId,
+          },
+        });
+      } else {
+        await tx.jobOrders.update({
+          where: { id: jobOrderId },
+          data: { status: newStatus, updatedBy: "employee" },
+        });
+        
+        await tx.updateMessages.create({
+          data: {
+            message: `Job order ${jobOrderNumber} updated by employee: ${employee.name}.`,
+            orgId: orgId,
+          },
+        });
+      }
 
       return { success: true };
     });

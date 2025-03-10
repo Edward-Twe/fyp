@@ -475,7 +475,7 @@ export default function KanbanBoard({
                                                           ...order,
                                                           status: Status.todo,
                                                         }
-                                                        const result = await updateJobOrderStatus(order.id, Status.todo, orgId, order.employeeId!)
+                                                        const result = await updateJobOrderStatus(order.id, order.orderNumber, Status.todo, orgId, order.employeeId!, userRole!)
                                                         setLoading(false)
 
                                                         if (result.error) {
@@ -518,9 +518,11 @@ export default function KanbanBoard({
                                                         }
                                                         const result = await updateJobOrderStatus(
                                                           order.id,
+                                                          order.orderNumber,
                                                           Status.inprogress,
                                                           orgId,
                                                           order.employeeId!,
+                                                          userRole!,
                                                         )
                                                         setLoading(false)
 
@@ -564,9 +566,11 @@ export default function KanbanBoard({
                                                         }
                                                         const result = await updateJobOrderStatus(
                                                           order.id,
+                                                          order.orderNumber,
                                                           Status.completed,
                                                           orgId,
                                                           order.employeeId!,
+                                                          userRole!,
                                                         )
                                                         setLoading(false)
 

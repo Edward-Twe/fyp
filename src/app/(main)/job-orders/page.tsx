@@ -304,9 +304,13 @@ export default function JobOrdersPage() {
                     <div>
                       <h3 className="text-xl font-semibold">Order #{jobOrder.orderNumber}</h3>
                       <span className={`text-sm ${
-                        jobOrder.status !== 'unscheduled' ? 'text-green-500' : 'text-yellow-500'
+                        jobOrder.status === 'unscheduled' ? 'text-red-500' :
+                        jobOrder.status === 'inprogress' ? 'text-yellow-500' :
+                        jobOrder.status === 'todo' ? 'text-blue-500' :
+                        jobOrder.status === 'completed' ? 'text-green-500' :
+                        'text-muted-foreground'
                       }`}>
-                        {jobOrder.status === 'todo' ? 'Scheduled' : 'Unscheduled'}
+                        {jobOrder.status}
                       </span>
                     </div>
                   </div>
@@ -420,9 +424,13 @@ export default function JobOrdersPage() {
                     <div>
                       <h3 className="text-xl font-semibold">Order #{jobOrder.orderNumber}</h3>
                       <span className={`text-sm ${
-                        jobOrder.status !== 'unscheduled' ? 'text-green-500' : 'text-yellow-500'
+                        jobOrder.status === 'unscheduled' ? 'text-red-500' :
+                        jobOrder.status === 'inprogress' ? 'text-yellow-500' :
+                        jobOrder.status === 'todo' ? 'text-blue-500' :
+                        jobOrder.status === 'completed' ? 'text-green-500' :
+                        'text-muted-foreground'
                       }`}>
-                        {jobOrder.status === 'todo' ? 'Scheduled' : 'Unscheduled'}
+                        {jobOrder.status}
                       </span>
                     </div>
                   </div>

@@ -73,7 +73,7 @@ export function SelectionDialog<T>({
     }
 
     setFilteredItems(filtered)
-  }, [items, searchQuery, dateRange, getItemLabel, getItemDate, showOnlyUnscheduled, getItemStatus])
+  }, [items, searchQuery, dateRange, getItemLabel, getItemDate, showOnlyUnscheduled, getItemStatus, icon])
 
   const toggleItem = (item: T) => {
     const itemId = getItemId(item)

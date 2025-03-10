@@ -69,7 +69,7 @@ export function ScheduleMetrics({
       }
     }
     getCurrentEmployee();
-  }, [user, userRole]);
+  }, [user, userRole, orgId]);
 
   useEffect(() => {
     async function filterSchedules() {

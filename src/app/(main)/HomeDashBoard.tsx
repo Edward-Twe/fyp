@@ -8,8 +8,6 @@ import {
   AlertCircle,
   Calendar,
   ClipboardList,
-  ArrowUp,
-  ArrowDown,
   Users,
   Package,
   Package2,
@@ -24,7 +22,6 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useEffect, useState, useCallback } from "react";
@@ -59,14 +56,12 @@ import {
   subMonths,
 } from "date-fns";
 import type { JobOrderWithTasks } from "../types/routing";
-import { cn } from "@/lib/utils";
 import { loadUpdates } from "./updates/loadUpdates";
 import { Button } from "@/components/ui/button";
 import type { updateMessages } from "@prisma/client";
 import { validateRole } from "@/roleAuth";
 import { useSession } from "./SessionProvider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart, PieChart } from "@/components/ui/chart";
 import { ScheduleMetrics } from "@/components/dashboard/schedule-metrics";
 import { loadEmployees } from "./employees/loadEmployees";
 import { loadEmployeeSchedules } from "@/app/(main)/schedule/loadSchedules";
@@ -111,47 +106,6 @@ const datePresets = {
   },
   allTime: undefined,
 } as const;
-
-type StatsKey =
-  | "totalOrders"
-  | "completedOrders"
-  | "totalTasks"
-  | "completedTasks";
-
-const stats = [
-  {
-    key: "totalOrders" as StatsKey,
-    title: "Total Orders",
-    icon: Package2,
-    color: "bg-blue-50 dark:bg-blue-900/50",
-    borderColor: "border-blue-200 dark:border-blue-800",
-    compareWithPrevious: true,
-  },
-  {
-    key: "completedOrders" as StatsKey,
-    title: "Completed Orders",
-    icon: CheckCircle2,
-    color: "bg-green-50 dark:bg-green-900/50",
-    borderColor: "border-green-200 dark:border-green-800",
-    compareWithTotal: "totalOrders" as StatsKey,
-  },
-  {
-    key: "totalTasks" as StatsKey,
-    title: "Total Tasks",
-    icon: ListTodo,
-    color: "bg-purple-50 dark:bg-purple-900/50",
-    borderColor: "border-purple-200 dark:border-purple-800",
-    compareWithPrevious: true,
-  },
-  {
-    key: "completedTasks" as StatsKey,
-    title: "Completed Tasks",
-    icon: CheckCircle2,
-    color: "bg-amber-50 dark:bg-amber-900/50",
-    borderColor: "border-amber-200 dark:border-amber-800",
-    compareWithTotal: "totalTasks" as StatsKey,
-  },
-];
 
 export default function Dashboard() {
   const { selectedOrg } = useOrganization();
@@ -331,34 +285,6 @@ export default function Dashboard() {
     };
   }, [schedules, dateRange, selectedPreset]);
 
-  // Generate chart data based on stats
-  const generateChartData = () => {
-    const stats = calculateStats().currentPeriod;
-
-    // For orders chart
-    const ordersData = [
-      { name: "Completed", value: stats.completedOrders },
-      { name: "Pending", value: stats.totalOrders - stats.completedOrders },
-    ];
-
-    // For tasks chart
-    const tasksData = [
-      { name: "Completed", value: stats.completedTasks },
-      { name: "Pending", value: stats.totalTasks - stats.completedTasks },
-    ];
-
-    // For schedule progress chart
-    const scheduleProgressData = schedules.map((schedule) => ({
-      name:
-        schedule.name.length > 15
-          ? `${schedule.name.substring(0, 15)}...`
-          : schedule.name,
-      progress: calculateProgress(schedule),
-    }));
-
-    return { ordersData, tasksData, scheduleProgressData };
-  };
-
   if (!selectedOrg) {
     return (
       <div className="app-background flex h-full w-full flex-col items-center justify-center bg-noise p-8 text-center">
@@ -415,8 +341,6 @@ export default function Dashboard() {
       </div>
     );
   }
-
-  const chartData = generateChartData();
 
   return (
     <div className="app-background min-h-screen flex-1 bg-noise p-4 md:p-6">

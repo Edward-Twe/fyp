@@ -10,8 +10,6 @@ import {
   ClipboardList,
   Users,
   Package,
-  Package2,
-  CheckCircle2,
   Clock,
   ListTodo,
   Building2,
@@ -24,7 +22,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useOrganization } from "@/app/contexts/OrganizationContext";
 import { loadSchedules } from "./schedule/loadSchedules";
 import createOrg from "@/assets/create-org.jpeg";
@@ -51,9 +49,7 @@ import {
   startOfToday,
   subDays,
   startOfYear,
-  startOfMonth,
-  endOfMonth,
-  subMonths,
+  startOfMonth
 } from "date-fns";
 import type { JobOrderWithTasks } from "../types/routing";
 import { loadUpdates } from "./updates/loadUpdates";
@@ -192,98 +188,6 @@ export default function Dashboard() {
       ? "bg-green-100 dark:bg-green-800/50 border-green-200 dark:border-green-700"
       : "bg-yellow-100 dark:bg-yellow-800/50 border-yellow-200 dark:border-yellow-700";
   };
-
-  const getPreviousDateRange = (from: Date, to: Date) => {
-    const duration = to.getTime() - from.getTime();
-    return {
-      from: new Date(from.getTime() - duration),
-      to: new Date(from.getTime()),
-    };
-  };
-
-  const calculateStats = useCallback(() => {
-    if (!schedules.length)
-      return {
-        currentPeriod: {
-          totalOrders: 0,
-          completedOrders: 0,
-          totalTasks: 0,
-          completedTasks: 0,
-        },
-        previousPeriod: {
-          totalOrders: 0,
-          completedOrders: 0,
-          totalTasks: 0,
-          completedTasks: 0,
-        },
-      };
-
-    const currentRange = dateRange || datePresets.last7Days;
-    const previousRange = (() => {
-      if (selectedPreset === "allTime") return undefined;
-      if (selectedPreset === "thisMonth") {
-        const previousMonth = subMonths(new Date(), 1);
-        return {
-          from: startOfMonth(previousMonth),
-          to: endOfMonth(previousMonth),
-        };
-      }
-      return currentRange?.from && currentRange?.to
-        ? getPreviousDateRange(currentRange.from, currentRange.to)
-        : undefined;
-    })();
-
-    const calculatePeriodStats = (from?: Date, to?: Date) => {
-      const filteredSchedules = schedules.filter((schedule) => {
-        if (selectedPreset === "allTime") return true;
-        const scheduleDate = new Date(schedule.departTime);
-        return (!from || scheduleDate >= from) && (!to || scheduleDate <= to);
-      });
-
-      return filteredSchedules.reduce(
-        (acc, schedule) => {
-          const orders = schedule.jobOrder || [];
-          const tasks = orders.flatMap((order) =>
-            (order.JobOrderTask || []).reduce(
-              (sum, task) => sum + (task.quantity || 0),
-              0,
-            ),
-          );
-          const completedTasks = orders
-            .filter((o) => o.status === "completed")
-            .flatMap((order) =>
-              (order.JobOrderTask || []).reduce(
-                (sum, task) => sum + (task.quantity || 0),
-                0,
-              ),
-            );
-
-          return {
-            totalOrders: acc.totalOrders + orders.length,
-            completedOrders:
-              acc.completedOrders +
-              orders.filter((o) => o.status === "completed").length,
-            totalTasks: acc.totalTasks + tasks.length,
-            completedTasks: acc.completedTasks + completedTasks.length,
-          };
-        },
-        {
-          totalOrders: 0,
-          completedOrders: 0,
-          totalTasks: 0,
-          completedTasks: 0,
-        },
-      );
-    };
-
-    return {
-      currentPeriod: calculatePeriodStats(currentRange?.from, currentRange?.to),
-      previousPeriod: calculatePeriodStats(
-        previousRange?.from,
-        previousRange?.to,
-      ),
-    };
-  }, [schedules, dateRange, selectedPreset]);
 
   if (!selectedOrg) {
     return (

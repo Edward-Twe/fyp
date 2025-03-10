@@ -63,7 +63,7 @@ export function ScheduleMetrics({
 
   useEffect(() => {
     async function getCurrentEmployee() {
-      if (user.user && ["admin", "owner"].includes(userRole)) {
+      if (user.user && !["admin", "owner"].includes(userRole)) {
         const response = await findEmployeebyUserId(user.user.id, orgId);
         setCurrentEmployee(response);
       }
@@ -73,15 +73,21 @@ export function ScheduleMetrics({
 
   useEffect(() => {
     async function filterSchedules() {
+      // First filter by employee if user is not admin/owner
       let schedulesToFilter = employeeSchedules;
       
-      // Filter by employee if user is not admin/owner
-      if (currentEmployee && !["admin", "owner"].includes(userRole)) {
+      if (!["admin", "owner"].includes(userRole) && currentEmployee) {
         schedulesToFilter = employeeSchedules.filter(
-          (schedule) => schedule.employeeId === currentEmployee.id
+          (schedule) => {
+            // Check if any job orders belong to this employee
+            return schedule.schedule.jobOrder.some(
+              order => order.employeeId === currentEmployee.id
+            );
+          }
         );
       }
 
+      // Then apply time filter
       if (timeFilter === "all") {
         setFilteredSchedules(schedulesToFilter);
         return;
@@ -126,8 +132,9 @@ export function ScheduleMetrics({
   const processedOrderIds = new Set();
   const taskCalculations = filteredSchedules.reduce((acc, schedule) => {
     schedule.schedule.jobOrder.forEach(order => {
-      // Only process each scheduled order once
-      if (!processedOrderIds.has(order.id) && order.schedulesId) {
+      // Only process each scheduled order once and check if it belongs to the current employee
+      if (!processedOrderIds.has(order.id) && order.schedulesId && 
+          (!currentEmployee || ["admin", "owner"].includes(userRole) || order.employeeId === currentEmployee.id)) {
         processedOrderIds.add(order.id);
         
         const orderTaskCount = calculateOrderTasks(order);
@@ -144,8 +151,8 @@ export function ScheduleMetrics({
           acc.todoTasks += orderTaskCount;
           acc.todoOrders += 1;
         }
-
-    }});
+      }
+    });
     
     return acc;
   }, { totalTasks: 0, completedTasks: 0, inProgressTasks: 0, todoTasks: 0, totalOrders: 0, completedOrders: 0, inProgressOrders: 0, todoOrders: 0 });
@@ -307,7 +314,13 @@ export function ScheduleMetrics({
               <div className="flex items-center justify-between">
                 <div className="text-2xl font-bold">
                   {filteredSchedules
-                    .reduce((sum, es) => sum + Number(es.totalDistance), 0)
+                    .reduce((sum, es) => {
+                      // Only include distance if it's for all users or matches current employee
+                      if (!currentEmployee || ["admin", "owner"].includes(userRole) || es.employeeId === currentEmployee.id) {
+                        return sum + Number(es.totalDistance);
+                      }
+                      return sum;
+                    }, 0)
                     .toFixed(1)}{" "}
                   km
                 </div>

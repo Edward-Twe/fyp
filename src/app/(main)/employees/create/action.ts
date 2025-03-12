@@ -32,16 +32,6 @@ export async function createEmployee(
       if (email) {
         const userId = (await findUserByEmail(email))?.id;
         if (userId) {
-          const existingRole = await tx.organizationRole.findFirst({
-            where: {
-              AND: {
-                userId: userId,
-                orgId: orgId
-              }
-            }
-          })
-
-          
 
           await tx.organizationRole.upsert({
             where: {

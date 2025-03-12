@@ -15,16 +15,11 @@ import {
   Building2,
   Plus,
 } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useEffect, useState } from "react";
 import { useOrganization } from "@/app/contexts/OrganizationContext";
-import { loadSchedules } from "./schedule/loadSchedules";
+import { findEmployeebyUserId, loadSchedules } from "./schedule/loadSchedules";
 import createOrg from "@/assets/create-org.jpeg";
 import schedule from "@/assets/schedule.jpeg";
 import tasks from "@/assets/tasks.jpeg";
@@ -82,6 +77,7 @@ export default function Dashboard() {
   const updatesPerPage = 5;
   const { user } = useSession();
   const [activeTab, setActiveTab] = useState("overview");
+  const [employeeId, setEmployeeId] = useState<string | null>(null); // State for employee ID
 
   useEffect(() => {
     async function fetchData() {
@@ -106,6 +102,10 @@ export default function Dashboard() {
         setEmployeeSchedules(
           Array.isArray(employeeSchedulesData) ? employeeSchedulesData : [],
         );
+
+        // Get the employee ID for the current user
+        const employee = await findEmployeebyUserId(user.id, selectedOrg.id);
+        setEmployeeId(employee ? employee.id : null); // Set employee ID
       } catch (error) {
         console.error("Failed to fetch data:", error);
       } finally {
@@ -143,7 +143,21 @@ export default function Dashboard() {
     const completed =
       schedule.jobOrder?.filter((job) => job.status === "completed").length ||
       0;
-    return total ? Math.round((completed / total) * 100) : 0;
+
+    // Check if the user is not an admin or owner
+    if (userRole !== "admin" && userRole !== "owner") {
+      // Filter job orders to only include those assigned to the current user
+      const userAssignedJobs =
+        schedule.jobOrder?.filter((job) => job.employeeId === employeeId) || [];
+      const userTotal = userAssignedJobs.length;
+      const userCompleted =
+        userAssignedJobs.filter((job) => job.status === "completed").length ||
+        0;
+
+      return userTotal ? Math.round((userCompleted / userTotal) * 100) : 0; // Calculate progress for user-specific jobs
+    }
+
+    return total ? Math.round((completed / total) * 100) : 0; // Default progress calculation for admins/owners
   };
 
   const getProgressColor = (progress: number) => {
@@ -228,8 +242,6 @@ export default function Dashboard() {
             </p>
           </div>
         </div>
-
-        
       </motion.div>
 
       <Tabs
@@ -258,7 +270,6 @@ export default function Dashboard() {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
-
           {/* Active Schedules */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -332,13 +343,24 @@ export default function Dashboard() {
                               />
                               <div className="mt-4 flex justify-between text-sm text-muted-foreground">
                                 <span>
-                                  Total: {schedule.jobOrder?.length || 0}
+                                  Total:{" "}
+                                  {userRole !== "admin" && userRole !== "owner"
+                                    ? schedule.jobOrder?.filter(
+                                        (job) => job.employeeId === employeeId,
+                                      ).length || 0
+                                    : schedule.jobOrder?.length || 0}
                                 </span>
                                 <span>
                                   Completed:{" "}
-                                  {schedule.jobOrder?.filter(
-                                    (job) => job.status === "completed",
-                                  ).length || 0}
+                                  {userRole !== "admin" && userRole !== "owner"
+                                    ? schedule.jobOrder?.filter(
+                                        (job) =>
+                                          job.employeeId === employeeId &&
+                                          job.status === "completed",
+                                      ).length || 0
+                                    : schedule.jobOrder?.filter(
+                                        (job) => job.status === "completed",
+                                      ).length || 0}
                                 </span>
                               </div>
                             </CardContent>

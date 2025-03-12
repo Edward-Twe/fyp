@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
 
           await tx.updateMessages.create({
             data: {
-              message: `Job order ${order.id} in progress by system (updated by system)`,
+              message: `Job order ${order.orderNumber} in progress by system (updated by system)`,
               orgId: orgId,
             }
           })

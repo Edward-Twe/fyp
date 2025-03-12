@@ -72,6 +72,7 @@ export async function editSchedule(
           employeeId: null,
           status: "unscheduled",
           scheduledOrder: null,
+          updatedBy: null, 
         },
       });
 
@@ -106,7 +107,8 @@ export async function editSchedule(
         });
 
         // Update job orders for each employee column
-        for (const job of column.jobOrders) {
+        for (let i = 0; i < column.jobOrders.length; i++) {
+          const job = column.jobOrders[i];
 
           // Update the job order with the scheduledOrder
           await tx.jobOrders.update({
@@ -114,8 +116,8 @@ export async function editSchedule(
             data: {
               schedulesId: id,
               employeeId: columnId,
-              status: job.status === 'unscheduled' ? 'todo' : job.status,
-              updatedBy: "admin",
+              status: job.status === "unscheduled" ? "todo" : job.status,
+              scheduledOrder: i + 1,
             },
           });
         }

@@ -70,7 +70,19 @@ export default function KanbanBoard({
 
   useEffect(() => {
     if (initialColumns && Object.keys(initialColumns).length > 0) {
-      setColumns(initialColumns)
+      // Create a deep copy of initialColumns with sorted job orders
+      const deepCopiedColumns = Object.keys(initialColumns).reduce((acc, key) => {
+        acc[key] = {
+          ...initialColumns[key],
+          // Create a new array for job orders and ensure they're sorted
+          jobOrders: [...initialColumns[key].jobOrders].sort(
+            (a, b) => (a.scheduledOrder || 0) - (b.scheduledOrder || 0)
+          )
+        };
+        return acc;
+      }, {} as Columns);
+      
+      setColumns(deepCopiedColumns);
     } else if (jobOrders.length > 0) {
       const newColumns: Columns = {
         ...(userRole === "owner" || userRole === "admin"
@@ -78,7 +90,7 @@ export default function KanbanBoard({
               jobOrders: {
                 id: "jobOrders",
                 title: "Job Orders",
-                jobOrders: jobOrders,
+                jobOrders: [...jobOrders],
               },
             }
           : {}),
@@ -100,6 +112,7 @@ export default function KanbanBoard({
       setColumns(newColumns)
     }
   }, [employees, jobOrders, initialColumns, userRole])
+  
 
   const handleScroll = (e: React.DragEvent<HTMLDivElement>) => {
     if (!isDragging || !containerRef.current) return
@@ -273,6 +286,45 @@ export default function KanbanBoard({
         return "bg-gradient-to-b from-blue-100 to-blue-50 dark:from-blue-900/30 dark:to-blue-950/20"
     }
   }
+
+  const handleStatusChange = async (order: JobOrderWithTasks, newStatus: Status) => {
+    setLoading(true);
+    const updatedOrder = {
+        ...order,
+        status: newStatus,
+    };
+
+    const result = await updateJobOrderStatus(order.id, order.orderNumber, newStatus, orgId, order.employeeId!, userRole!);
+    setLoading(false);
+
+    if (result.error) {
+        console.error(result.error);
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: result.error,
+        });
+    } else {
+
+        const newColumns = { ...columns };
+        const columnId = Object.keys(columns).find((id) =>
+            columns[id].jobOrders.some((jo) => jo.id === order.id),
+        );
+
+        if (columnId) {
+            newColumns[columnId].jobOrders = newColumns[columnId].jobOrders.map((jo) =>
+                jo.id === order.id ? updatedOrder : jo,
+            );
+
+            setColumns(newColumns);
+            onColumnsChange?.(newColumns);
+            toast({
+                title: "Success",
+                description: "Job order status updated successfully!",
+            });
+        }
+    }
+  };
 
   return (
     <>
@@ -470,40 +522,7 @@ export default function KanbanBoard({
                                                     <DropdownMenuItem
                                                       className={statusStyles.todo}
                                                       onClick={async () => {
-                                                        setLoading(true)
-                                                        const updatedOrder = {
-                                                          ...order,
-                                                          status: Status.todo,
-                                                        }
-                                                        const result = await updateJobOrderStatus(order.id, order.orderNumber, Status.todo, orgId, order.employeeId!, userRole!)
-                                                        setLoading(false)
-
-                                                        if (result.error) {
-                                                          console.error(result.error)
-                                                          toast({
-                                                            variant: "destructive",
-                                                            title: "Error",
-                                                            description: result.error,
-                                                          })
-                                                        } else {
-                                                          const newColumns = { ...columns }
-                                                          const columnId = Object.keys(columns).find((id) =>
-                                                            columns[id].jobOrders.some((jo) => jo.id === order.id),
-                                                          )
-                                                          if (columnId) {
-                                                            newColumns[columnId].jobOrders = newColumns[
-                                                              columnId
-                                                            ].jobOrders.map((jo) =>
-                                                              jo.id === order.id ? updatedOrder : jo,
-                                                            )
-                                                            setColumns(newColumns)
-                                                            onColumnsChange?.(newColumns)
-                                                            toast({
-                                                              title: "Success",
-                                                              description: "Job order status updated successfully!",
-                                                            })
-                                                          }
-                                                        }
+                                                        await handleStatusChange(order, Status.todo)
                                                       }}
                                                     >
                                                       To-do
@@ -511,47 +530,7 @@ export default function KanbanBoard({
                                                     <DropdownMenuItem
                                                       className={statusStyles.inprogress}
                                                       onClick={async () => {
-                                                        setLoading(true)
-                                                        const updatedOrder = {
-                                                          ...order,
-                                                          status: Status.inprogress,
-                                                        }
-                                                        const result = await updateJobOrderStatus(
-                                                          order.id,
-                                                          order.orderNumber,
-                                                          Status.inprogress,
-                                                          orgId,
-                                                          order.employeeId!,
-                                                          userRole!,
-                                                        )
-                                                        setLoading(false)
-
-                                                        if (result.error) {
-                                                          console.error(result.error)
-                                                          toast({
-                                                            variant: "destructive",
-                                                            title: "Error",
-                                                            description: result.error,
-                                                          })
-                                                        } else {
-                                                          const newColumns = { ...columns }
-                                                          const columnId = Object.keys(columns).find((id) =>
-                                                            columns[id].jobOrders.some((jo) => jo.id === order.id),
-                                                          )
-                                                          if (columnId) {
-                                                            newColumns[columnId].jobOrders = newColumns[
-                                                              columnId
-                                                            ].jobOrders.map((jo) =>
-                                                              jo.id === order.id ? updatedOrder : jo,
-                                                            )
-                                                            setColumns(newColumns)
-                                                            onColumnsChange?.(newColumns)
-                                                            toast({
-                                                              title: "Success",
-                                                              description: "Job order status updated successfully!",
-                                                            })
-                                                          }
-                                                        }
+                                                        await handleStatusChange(order, Status.inprogress)
                                                       }}
                                                     >
                                                       In Progress
@@ -559,47 +538,7 @@ export default function KanbanBoard({
                                                     <DropdownMenuItem
                                                       className={statusStyles.completed}
                                                       onClick={async () => {
-                                                        setLoading(true)
-                                                        const updatedOrder = {
-                                                          ...order,
-                                                          status: Status.completed,
-                                                        }
-                                                        const result = await updateJobOrderStatus(
-                                                          order.id,
-                                                          order.orderNumber,
-                                                          Status.completed,
-                                                          orgId,
-                                                          order.employeeId!,
-                                                          userRole!,
-                                                        )
-                                                        setLoading(false)
-
-                                                        if (result.error) {
-                                                          console.error(result.error)
-                                                          toast({
-                                                            variant: "destructive",
-                                                            title: "Error",
-                                                            description: result.error,
-                                                          })
-                                                        } else {
-                                                          const newColumns = { ...columns }
-                                                          const columnId = Object.keys(columns).find((id) =>
-                                                            columns[id].jobOrders.some((jo) => jo.id === order.id),
-                                                          )
-                                                          if (columnId) {
-                                                            newColumns[columnId].jobOrders = newColumns[
-                                                              columnId
-                                                            ].jobOrders.map((jo) =>
-                                                              jo.id === order.id ? updatedOrder : jo,
-                                                            )
-                                                            setColumns(newColumns)
-                                                            onColumnsChange?.(newColumns)
-                                                            toast({
-                                                              title: "Success",
-                                                              description: "Job order status updated successfully!",
-                                                            })
-                                                          }
-                                                        }
+                                                        await handleStatusChange(order, Status.completed)
                                                       }}
                                                     >
                                                       Completed

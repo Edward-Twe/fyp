@@ -130,7 +130,7 @@ export default function TaskForm() {
                   <p>{error}</p>
                 </div>
               )}
-              
+
               <div className="space-y-2">
                 <FormField
                   control={form.control}
@@ -142,9 +142,9 @@ export default function TaskForm() {
                         Task Name
                       </FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="Enter descriptive task name" 
-                          {...field} 
+                        <Input
+                          placeholder="Enter descriptive task name"
+                          {...field}
                           className="input-field focus:border-theme-blue-300"
                         />
                       </FormControl>
@@ -153,13 +153,13 @@ export default function TaskForm() {
                   )}
                 />
               </div>
-              
+
               <div className="bg-theme-blue-50/50 dark:bg-theme-blue-900/10 rounded-lg p-4 space-y-4">
                 <h3 className="text-sm font-medium text-theme-blue-700 dark:text-theme-blue-300 flex items-center gap-1.5">
                   <Clock className="h-4 w-4" />
                   Time Requirements
                 </h3>
-                
+
                 <div className="flex space-x-3">
                   <FormField
                     control={form.control}
@@ -172,7 +172,7 @@ export default function TaskForm() {
                             type="number"
                             placeholder="Enter time value"
                             {...field}
-                            onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                            value={field.value || 0}
                             className="input-field focus:border-theme-blue-300"
                           />
                         </FormControl>
@@ -203,13 +203,13 @@ export default function TaskForm() {
                   />
                 </div>
               </div>
-              
+
               <div className="bg-theme-blue-50/50 dark:bg-theme-blue-900/10 rounded-lg p-4">
                 <h3 className="text-sm font-medium text-theme-blue-700 dark:text-theme-blue-300 flex items-center gap-1.5 mb-4">
                   <Ruler className="h-4 w-4" />
                   Space Requirements
                 </h3>
-                
+
                 <FormField
                   control={form.control}
                   name="spaceNeeded"
@@ -231,7 +231,7 @@ export default function TaskForm() {
                 />
               </div>
             </CardContent>
-            
+
             <CardFooter className="flex flex-col gap-3 border-t border-theme-blue-100/50 dark:border-theme-blue-900/30 bg-theme-blue-50/50 dark:bg-theme-blue-900/10 p-6">
               <LoadingButton
                 type="button"
@@ -246,9 +246,9 @@ export default function TaskForm() {
                   </>
                 )}
               </LoadingButton>
-              
-              <Link 
-                href="/tasks" 
+
+              <Link
+                href="/tasks"
                 className="text-sm text-center text-muted-foreground hover:text-theme-blue-600 dark:hover:text-theme-blue-400 transition-colors"
               >
                 Cancel and return to tasks
@@ -257,7 +257,7 @@ export default function TaskForm() {
           </form>
         </Form>
       </Card>
-      
+
       <div className="mt-6 text-center">
         <p className="text-xs text-muted-foreground">
           Tasks will be available for assignment to your schedules after creation

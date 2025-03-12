@@ -53,7 +53,7 @@ export default function OrgForm() {
             title: "Success",
             description: `Successfully created organization`,
           });
-          window.location.href = '/organizations';
+          window.location.href = '/';
         }
       } catch (err) {
         console.error("Error creating organization:", err);

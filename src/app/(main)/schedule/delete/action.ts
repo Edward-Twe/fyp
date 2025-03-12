@@ -26,7 +26,8 @@ export async function deleteSchedule(scheduleId: string) {
             status: Status.unscheduled,
             schedulesId: null,
             employeeId: null,
-            scheduledOrder: null
+            scheduledOrder: null,
+            updatedBy: null
           }
         })
       }

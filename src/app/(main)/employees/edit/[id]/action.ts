@@ -1,5 +1,6 @@
 "use server";
 
+import { findEmployeebyUserId } from "@/app/(main)/schedule/loadSchedules";
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { UpdateEmployeeValues, updateEmployeeSchema } from "@/lib/validation";
@@ -109,10 +110,12 @@ export async function checkExistingEmployeeInOrg(email: string, orgId: string, e
     const user = await findUserByEmail(email);
     if (!user) return false;
 
-    const existingEmployee = await prisma.employees.findFirst({
+    const existingEmployee = await prisma.organizationRole.findFirst({
       where: {
-        orgId: orgId,
-        email: email,
+        AND: {
+          orgId: orgId,
+          userId: user.id,
+        }
       }
     });
 
@@ -120,8 +123,10 @@ export async function checkExistingEmployeeInOrg(email: string, orgId: string, e
     if (!existingEmployee) return false;
 
     // If editing (employeeId provided), check if email belongs to same employee
-    if (employeeId && existingEmployee.id === employeeId) {
-      return false; // Allow editing own email
+    if (employeeId) {
+      const employee = await findEmployeebyUserId(user.id, orgId);
+      const existingEmpId = employee?.id;
+      if (existingEmpId === employeeId) return false; // Allow editing own email
     }
 
     // Email exists and belongs to different employee

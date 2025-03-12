@@ -72,7 +72,7 @@ export async function createSchedule(
             data: {
               schedulesId: schedule.id,
               employeeId: columnId, // columnId is the employeeId
-              status: "todo",
+              status: job.status === "unscheduled" ? "todo" : job.status,
               scheduledOrder: i + 1, // Assign order starting from 1
             },
           });

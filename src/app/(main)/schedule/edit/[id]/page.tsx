@@ -63,9 +63,10 @@ export default function SchedulesPage() {
 
     async function fetchEmpJob() {
       if (!selectedOrg) return
+      setIsLoading(true); // Add loading state
       try {
         const emp = await loadEmployees(selectedOrg.id)
-        const job = await loadJobOrders(selectedOrg.id)
+        const job = await loadJobOrders(selectedOrg.id) // Ensure job orders are loaded
 
         if ("error" in emp) {
           setError(emp.error)
@@ -73,12 +74,14 @@ export default function SchedulesPage() {
           setError(job.error)
         } else {
           setEmployees(emp)
-          setJobOrders(job)
+          setJobOrders(job) // Set job orders correctly
           setError(null)
         }
       } catch (err) {
         setError("An unexpected error occurred")
         console.error(err)
+      } finally {
+        setIsLoading(false); // Reset loading state
       }
     }
 
@@ -150,7 +153,7 @@ export default function SchedulesPage() {
           column.jobOrders.sort((a, b) => (a.scheduledOrder || 0) - (b.scheduledOrder || 0))
         })
 
-        setColumns(newColumns)
+        setColumns({...newColumns})
         setScheduleName(fetchedSchedule.name)
       } catch (err) {
         console.error("Error during fetch:", err)
@@ -158,7 +161,7 @@ export default function SchedulesPage() {
       }
     }
 
-    setIsLoading(true)
+    setIsLoading(true) // Ensure loading state is set
     Promise.all([fetchEmpJob(), getSchedule()]).finally(() => setIsLoading(false))
   }, [selectedOrg, id, userRole, user?.id]) // Make sure userRole is in dependencies
 
@@ -172,6 +175,10 @@ export default function SchedulesPage() {
 
     fetchUserRole()
   }, [selectedOrg, user])
+
+  useEffect(() => {
+    console.log("Updated columns:", columns);
+  }, [columns]);
 
   const getValidDateString = (date: Date | string | null | undefined): string => {
     if (!date) return new Date().toISOString()
@@ -406,6 +413,13 @@ export default function SchedulesPage() {
           newColumns.jobOrders.jobOrders.push(jobOrder)
         }
       })
+
+      // Sort job orders in columns if user is not admin or owner
+      if (userRole !== "admin" && userRole !== "owner") {
+        Object.values(newColumns).forEach((column) => {
+          column.jobOrders.sort((a, b) => (a.scheduledOrder || 0) - (b.scheduledOrder || 0));
+        });
+      }
 
       setColumns(newColumns)
     }

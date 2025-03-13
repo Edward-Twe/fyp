@@ -332,7 +332,7 @@ export default function KanbanBoard({
         <DragDropContext onDragStart={onDragStart} onDragEnd={onDragEnd}>
           <div
             ref={containerRef}
-            className="flex flex-1 gap-4 overflow-x-auto overflow-y-hidden md:flex-row flex-col"
+            className="flex flex-1 gap-4 overflow-x-auto overflow-y-auto md:flex-row flex-col"
             onDragOver={handleScroll}
             style={{ scrollBehavior: "smooth" }}
           >

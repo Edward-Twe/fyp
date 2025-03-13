@@ -16,10 +16,12 @@ import { useState, useTransition } from "react";
 import { signUp } from "./actions";
 import { PasswordInput } from "@/components/PasswordInput";
 import LoadingButton from "@/components/Loadingbutton";
+import { useOrganization } from "@/app/contexts/OrganizationContext";
 
 export default function SignUpForm() {
   // to get the error sent from the backend
   const [error, setError] = useState<string>();
+  const { clearSelectedOrg } = useOrganization()
 
   // should be used for server actions within client component. make sure server action is finished before making transitions.
   const [isPending, startTransition] = useTransition();
@@ -37,6 +39,8 @@ export default function SignUpForm() {
 
   async function onSubmit(values: SignUpValues) {
     setError(undefined);
+    localStorage.clear()
+    await clearSelectedOrg()
     startTransition(async () => {
       const { error } = await signUp(values);
       if (error) setError(error);

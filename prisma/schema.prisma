@@ -18,13 +18,10 @@ model User {
   id          String  @id
   username    String  @unique
   displayName String
-  profilePic  String?
 
   // Optional because google login doesn't need these
   email        String? @unique
   passwordHash String?
-  // For google login
-  googleId     String? @unique
 
   sessions      Session[]
   organizations Organization[]
@@ -71,7 +68,6 @@ model Organization {
   name           String
   email          String?
   location       String?
-  orgPic         String?
   ownerId        String
   user           User               @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   Employees      Employees[]
@@ -221,4 +217,8 @@ model updateMessages {
   org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
   @@map("update_messages")
+}
+
+generator dbml {
+  provider = "prisma-dbml-generator"
 }

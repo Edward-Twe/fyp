@@ -1,0 +1,210 @@
+//// ------------------------------------------------------
+//// THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+//// ------------------------------------------------------
+
+Table users {
+  id String [pk]
+  username String [unique, not null]
+  displayName String [not null]
+  email String [unique]
+  passwordHash String
+  sessions sessions [not null]
+  organizations organizations [not null]
+  createdAt DateTime [default: `now()`, not null]
+  Employees employees [not null]
+  Role organization_role [not null]
+}
+
+Table organization_role {
+  id String [pk]
+  userId String [not null]
+  orgId String [not null]
+  role Roles [not null]
+  user users [not null]
+  organization organizations [not null]
+
+  indexes {
+    (userId, orgId) [unique]
+  }
+}
+
+Table sessions {
+  id String [pk]
+  userId String [not null]
+  expiresAt DateTime [not null]
+  user users [not null]
+}
+
+Table organizations {
+  id String [pk]
+  name String [not null]
+  email String
+  location String
+  ownerId String [not null]
+  user users [not null]
+  Employees employees [not null]
+  Tasks tasks [not null]
+  JobOrders job_orders [not null]
+  Schedules schedules [not null]
+  updateMessages update_messages [not null]
+  Role organization_role [not null]
+}
+
+Table employees {
+  id String [pk]
+  name String [not null]
+  email String
+  area String [not null]
+  areaLat Decimal [not null]
+  areaLong Decimal [not null]
+  space Decimal [not null]
+  orgId String [not null]
+  userId String
+  lastLat Decimal
+  lastLong Decimal
+  lastUpdatedAt DateTime
+  currentLat Decimal
+  currentLong Decimal
+  organization organizations [not null]
+  user users
+  JobOrders job_orders [not null]
+  EmployeeSchedules employee_schedules [not null]
+}
+
+Table tasks {
+  id String [pk]
+  task String [not null]
+  requiredTimeValue Decimal [not null]
+  requiredTimeUnit TimeUnit [not null]
+  spaceNeeded Decimal [not null]
+  orgId String [not null]
+  organization organizations [not null]
+  JobOrderTask job_order_task [not null]
+}
+
+Table job_orders {
+  id String [pk]
+  orderNumber String [not null]
+  createdAt DateTime [default: `now()`, not null]
+  orgId String [not null]
+  address String [not null]
+  city String [not null]
+  postCode String [not null]
+  state String [not null]
+  country String [not null]
+  latitude Decimal [not null]
+  longitude Decimal [not null]
+  spaceRequried Decimal [not null]
+  placeId String [not null]
+  updatedBy String
+  organization organizations [not null]
+  JobOrderTask job_order_task [not null]
+  schedules schedules
+  schedulesId String
+  status Status [not null, default: 'unscheduled']
+  scheduledEmp employees
+  employeeId String
+  scheduledOrder Int
+}
+
+Table job_order_task {
+  id String [pk]
+  jobOrderId String [not null]
+  taskId String [not null]
+  quantity Int [not null]
+  jobOrder job_orders [not null]
+  task tasks [not null]
+
+  indexes {
+    (jobOrderId, taskId) [unique]
+  }
+}
+
+Table schedules {
+  id String [pk]
+  name String [not null]
+  orgId String [not null]
+  createdAt DateTime [default: `now()`, not null]
+  departAddress String [not null]
+  departCity String [not null]
+  departPostCode String [not null]
+  departState String [not null]
+  departCountry String [not null]
+  departLatitude Decimal [not null]
+  departLongitude Decimal [not null]
+  departTime DateTime [not null]
+  departPlaceId String [not null]
+  jobOrder job_orders [not null]
+  organization organizations [not null]
+  EmployeeSchedules employee_schedules [not null]
+}
+
+Table employee_schedules {
+  id String [pk]
+  employeeId String [not null]
+  scheduleId String [not null]
+  totalDistance Decimal [not null]
+  totalTime Decimal [not null]
+  totalOrders Int [not null]
+  totalSpace Decimal [not null]
+  employee employees [not null]
+  schedule schedules [not null]
+}
+
+Table update_messages {
+  id String [pk]
+  message String [not null]
+  updatedAt DateTime [default: `now()`, not null]
+  orgId String [not null]
+  org organizations [not null]
+}
+
+Enum Roles {
+  owner
+  admin
+  user
+}
+
+Enum TimeUnit {
+  minutes
+  hours
+}
+
+Enum Status {
+  unscheduled
+  todo
+  inprogress
+  completed
+}
+
+Ref: organization_role.userId > users.id [delete: Cascade]
+
+Ref: organization_role.orgId > organizations.id [delete: Cascade]
+
+Ref: sessions.userId > users.id [delete: Cascade]
+
+Ref: organizations.ownerId > users.id [delete: Cascade]
+
+Ref: employees.orgId > organizations.id [delete: Cascade]
+
+Ref: employees.userId > users.id [delete: Cascade]
+
+Ref: tasks.orgId > organizations.id [delete: Cascade]
+
+Ref: job_orders.orgId > organizations.id [delete: Cascade]
+
+Ref: job_orders.schedulesId > schedules.id [delete: Set Null]
+
+Ref: job_orders.employeeId > employees.id [delete: Set Null]
+
+Ref: job_order_task.jobOrderId > job_orders.id [delete: Cascade]
+
+Ref: job_order_task.taskId > tasks.id [delete: Cascade]
+
+Ref: schedules.orgId > organizations.id [delete: Cascade]
+
+Ref: employee_schedules.employeeId > employees.id [delete: Cascade]
+
+Ref: employee_schedules.scheduleId > schedules.id [delete: Cascade]
+
+Ref: update_messages.orgId > organizations.id [delete: Cascade]

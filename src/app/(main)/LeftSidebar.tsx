@@ -176,7 +176,7 @@ function LeftSidebarContent({
                   ) : (
                     <>
                       <Image
-                        src={!selectedOrg.orgPic ? defaultLogo : selectedOrg.orgPic}
+                        src={defaultLogo}
                         alt={selectedOrg.name}
                         className="mr-2 h-8 w-8 rounded-full object-cover"
                       />
@@ -198,7 +198,7 @@ function LeftSidebarContent({
                         onClick={() => setSelectedOrg(organization)}
                       >
                         <Image
-                          src={organization.orgPic ? organization.orgPic : defaultLogo}
+                          src={defaultLogo}
                           alt={organization.name}
                           className="mr-2 h-8 w-8 rounded-full object-cover"
                         />

@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/app/ThemeProvider"
 import { Toaster } from "@/components/ui/toaster";
 import { OrganizationProvider } from './contexts/OrganizationContext'
+import { SpeedInsights } from "@vercel/speed-insights/next"
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -47,6 +48,7 @@ export default function RootLayout({
         <OrganizationProvider>
           <ThemeProvider>
             {children}
+            <SpeedInsights/>
           </ThemeProvider>
         </OrganizationProvider>
         <Toaster />

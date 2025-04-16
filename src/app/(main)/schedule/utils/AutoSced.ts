@@ -163,54 +163,54 @@ export async function optimizeRoutes(
     }
 
     // 4. Check and split clusters that exceed max employee capacity
-    const maxEmployeeSpace = Math.max(...employees.map(emp => decimalToNumber(emp.space)));
-    let needsResplit = true;
-    while (needsResplit) {
-      needsResplit = false;
-      for (let i = 0; i < optimizedClusters.length; i++) {
-        if (optimizedClusters[i].totalSpaceRequired > maxEmployeeSpace) {
-          const originalCluster = optimizedClusters[i];
-          const newCluster = {
-            ...originalCluster,
-            id: optimizedClusters.length + 1,
-            jobOrders: [] as JobOrders[],
-            totalSpaceRequired: 0,
-            centroid: { lat: 0, lng: 0 }
-          };
+    // const maxEmployeeSpace = Math.max(...employees.map(emp => decimalToNumber(emp.space)));
+    // let needsResplit = true;
+    // while (needsResplit) {
+    //   needsResplit = false;
+    //   for (let i = 0; i < optimizedClusters.length; i++) {
+    //     if (optimizedClusters[i].totalSpaceRequired > maxEmployeeSpace) {
+    //       const originalCluster = optimizedClusters[i];
+    //       const newCluster = {
+    //         ...originalCluster,
+    //         id: optimizedClusters.length + 1,
+    //         jobOrders: [] as JobOrders[],
+    //         totalSpaceRequired: 0,
+    //         centroid: { lat: 0, lng: 0 }
+    //       };
 
-          // Remove job orders one by one until original cluster fits
-          while (originalCluster.totalSpaceRequired > maxEmployeeSpace && originalCluster.jobOrders.length > 0) {
-            const movedOrder = originalCluster.jobOrders.pop()!;
-            newCluster.jobOrders.unshift(movedOrder);
-            originalCluster.totalSpaceRequired -= Number(movedOrder.spaceRequried);
-            newCluster.totalSpaceRequired += Number(movedOrder.spaceRequried);
-          }
+    //       // Remove job orders one by one until original cluster fits
+    //       while (originalCluster.totalSpaceRequired > maxEmployeeSpace && originalCluster.jobOrders.length > 0) {
+    //         const movedOrder = originalCluster.jobOrders.pop()!;
+    //         newCluster.jobOrders.unshift(movedOrder);
+    //         originalCluster.totalSpaceRequired -= Number(movedOrder.spaceRequried);
+    //         newCluster.totalSpaceRequired += Number(movedOrder.spaceRequried);
+    //       }
 
-          // Recalculate centroids for both clusters
-          const calculateCentroid = (orders: JobOrders[]) => {
-            const total = orders.reduce(
-              (acc, order) => {
-                acc.lat += Number(order.latitude);
-                acc.lng += Number(order.longitude);
-                return acc;
-              },
-              { lat: 0, lng: 0 }
-            );
-            return {
-              lat: total.lat / orders.length,
-              lng: total.lng / orders.length,
-            };
-          };
+    //       // Recalculate centroids for both clusters
+    //       const calculateCentroid = (orders: JobOrders[]) => {
+    //         const total = orders.reduce(
+    //           (acc, order) => {
+    //             acc.lat += Number(order.latitude);
+    //             acc.lng += Number(order.longitude);
+    //             return acc;
+    //           },
+    //           { lat: 0, lng: 0 }
+    //         );
+    //         return {
+    //           lat: total.lat / orders.length,
+    //           lng: total.lng / orders.length,
+    //         };
+    //       };
 
-          originalCluster.centroid = calculateCentroid(originalCluster.jobOrders);
-          newCluster.centroid = calculateCentroid(newCluster.jobOrders);
+    //       originalCluster.centroid = calculateCentroid(originalCluster.jobOrders);
+    //       newCluster.centroid = calculateCentroid(newCluster.jobOrders);
 
-          optimizedClusters.splice(i, 1, originalCluster, newCluster);
-          needsResplit = true;
-          break;
-        }
-      }
-    }
+    //       optimizedClusters.splice(i, 1, originalCluster, newCluster);
+    //       needsResplit = true;
+    //       break;
+    //     }
+    //   }
+    // }
 
     // 5. Initialize assignments and employee capacity tracking
     const employeesWithCapacity = employees.map(emp => ({

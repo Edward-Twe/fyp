@@ -14,7 +14,7 @@ export async function createOrganization(
   if (!user) throw Error("Unauthorized");
 
   try {
-    const { name, email, location, logoUrl } = organizationSchema.parse(values);
+    const { name, email, location } = organizationSchema.parse(values);
 
     await prisma.$transaction(async (tx) => {
       // Create the organization
@@ -23,7 +23,6 @@ export async function createOrganization(
           name: name,
           email: email,
           location: location,
-          orgPic: logoUrl,
           ownerId: user.id,
         },
       });

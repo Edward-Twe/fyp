@@ -29,9 +29,6 @@ export const organizationSchema = z.object({
   name: requiredString,
   email: z.string().email("Invalid email address").optional(),
   location: z.string().optional(),
-  logoUrl: z
-    .string()
-    .optional(),
 });
 
 export type OrganizationValues = z.infer<typeof organizationSchema>;
@@ -41,10 +38,6 @@ export const updateOrganizationSchema = z.object({
   name: requiredString,
   email: z.string().email("Invalid email address").optional(),
   location: z.string().optional(),
-  logoUrl: z
-
-    .string()
-    .optional(),
 });
 
 export type UpdateOrganizationValues = z.infer<typeof updateOrganizationSchema>;

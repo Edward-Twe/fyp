@@ -32,7 +32,6 @@ export default function OrgForm() {
       name: "",
       email: "",
       location: "",
-      logoUrl: "",
     },
   });
 

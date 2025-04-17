@@ -35,8 +35,6 @@ export default function OrgForm({ id }: { id: string }) {
       name: "",
       email: "",
       location: "",
-      logoUrl: "",
-
     },
   });
 
@@ -60,8 +58,7 @@ export default function OrgForm({ id }: { id: string }) {
             id: fetchedOrg.id,
             name: fetchedOrg.name,
             email: fetchedOrg.email || "",
-            location: fetchedOrg.location || "",
-            logoUrl: fetchedOrg.orgPic || "",
+            location: fetchedOrg.location || ""
           });
           console.log("Organization fetched successfully:");
         }

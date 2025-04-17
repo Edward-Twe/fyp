@@ -16,7 +16,7 @@ export async function editOrganization(
   if (!user) throw Error("Unauthorized");
 
   try {
-    const { id, name, email, location, logoUrl } =
+    const { id, name, email, location } =
       updateOrganizationSchema.parse(values);
 
     // Check if the organization exists
@@ -32,7 +32,6 @@ export async function editOrganization(
         name,
         email,
         location,
-        orgPic: logoUrl,
       },
     });
 

@@ -54,6 +54,7 @@
     "lucia": "^3.2.2",
     "lucide-react": "^0.453.0",
     "ml-kmeans": "^6.0.0",
+    "motion-utils": "^12.12.1",
     "next": "15.0.2",
     "next-auth": "^5.0.0-beta.25",
     "next-themes": "^0.3.0",
